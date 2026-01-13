@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  duty-app:
+    build: .
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.duty-app.rule=Host(`duty.sresh.ru`)
+      - traefik.http.routers.duty-app.tls=true
+      - traefik.http.routers.duty-app.entrypoints=web,websecure
+      - traefik.http.routers.duty-app.tls.certresolver=mytlschallenge
+      - traefik.http.services.duty-app.loadbalancer.server.port=5000
+      - traefik.http.middlewares.duty-app.headers.SSLRedirect=true
+      - traefik.http.middlewares.duty-app.headers.STSSeconds=315360000
+      - traefik.http.middlewares.duty-app.headers.browserXSSFilter=true
+      - traefik.http.middlewares.duty-app.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.duty-app.headers.forceSTSHeader=true
+      - traefik.http.middlewares.duty-app.headers.SSLHost=sresh.ru
+      - traefik.http.middlewares.duty-app.headers.STSIncludeSubdomains=true
+      - traefik.http.middlewares.duty-app.headers.STSPreload=true
+      - traefik.http.routers.duty-app.middlewares=duty-app@docker
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - .:/app
+    networks:
+      - n8n-compose_default
+
+networks:
+  n8n-compose_default:
+    external: true

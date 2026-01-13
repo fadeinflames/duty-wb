@@ -24,8 +24,17 @@ EMPLOYEES = {
 # Когда Анна начнет работать, установите ANNA_ENABLED = True
 ANNA_ENABLED = False
 
+# Экстренный контакт
+EMERGENCY_CONTACT = {
+    'name': 'Максим',  # Замените на ваше имя
+    'phone': '+7 (966) 121 9219'  # Замените на ваш телефон
+}
+
+# Часовой пояс (MSK - Московское время)
+TIMEZONE = pytz.timezone('Europe/Moscow')
+
 # Дата начала ротации (можно изменить)
-START_DATE = datetime(2024, 1, 1, tzinfo=pytz.UTC)
+START_DATE = datetime(2024, 1, 1, tzinfo=TIMEZONE)
 
 # Время дня/ночи
 DAY_START = 8  # 8:00
@@ -45,8 +54,8 @@ def is_day_time(hour):
 
 def get_current_duty():
     """Определяет текущего дежурного"""
-    # Получаем текущее время в UTC (можно изменить на нужный часовой пояс)
-    now = datetime.now(pytz.UTC)
+    # Получаем текущее время в MSK (Московское время)
+    now = datetime.now(TIMEZONE)
     week_num = get_week_number(now)
     hour = now.hour
     
@@ -84,7 +93,7 @@ def index():
     """Главная страница с информацией о текущем дежурном"""
     duty_person, duty_type = get_current_duty()
     
-    now = datetime.now(pytz.UTC)
+    now = datetime.now(TIMEZONE)
     week_num = get_week_number(now)
     
     # Определяем следующего дежурного для информации
@@ -109,10 +118,11 @@ def index():
     return render_template('index.html',
                          duty_person=duty_person,
                          duty_type=duty_type,
-                         current_time=now.strftime('%Y-%m-%d %H:%M:%S UTC'),
+                         current_time=now.strftime('%d.%m.%Y %H:%M MSK'),
                          week_number=week_num,
                          next_day=next_day,
-                         next_night=next_night)
+                         next_night=next_night,
+                         emergency_contact=EMERGENCY_CONTACT)
 
 
 @app.route('/api/current')
@@ -123,7 +133,7 @@ def api_current():
         'name': duty_person['name'],
         'phone': duty_person['phone'],
         'duty_type': duty_type,
-        'timestamp': datetime.now(pytz.UTC).isoformat()
+        'timestamp': datetime.now(TIMEZONE).isoformat()
     }
 
 

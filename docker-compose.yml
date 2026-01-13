@@ -9,4 +9,5 @@ services:
       - .:/app
     environment:
       - FLASK_ENV=development
+      - TZ=Europe/Moscow
     restart: unless-stopped

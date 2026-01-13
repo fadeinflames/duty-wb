@@ -19,10 +19,29 @@
 
 ## Запуск
 
-### С Docker Compose (рекомендуется)
+### С Docker Compose и Traefik
 
+1. Создайте файл `.env` в корне проекта со следующими переменными:
+```env
+DOMAIN_NAME=sresh.ru
+SUBDOMAIN=n8n
+SSL_EMAIL=your-email@example.com
+```
+
+2. Запустите все сервисы:
 ```bash
-docker-compose up --build
+docker-compose up -d --build
+```
+
+Приложение будет доступно по адресу: `https://duty.${DOMAIN_NAME}` (например, `https://duty.sresh.ru`)
+
+n8n будет доступен по адресу: `https://${SUBDOMAIN}.${DOMAIN_NAME}` (например, `https://n8n.sresh.ru`)
+
+### Локальный запуск (без Traefik)
+
+Если нужно запустить только приложение локально:
+```bash
+docker-compose up duty-app
 ```
 
 Приложение будет доступно по адресу: http://localhost:5000

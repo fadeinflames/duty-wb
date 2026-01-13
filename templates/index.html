@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Дежурный</title>
+    <title>Дежурный SRE</title>
     <style>
         * {
             margin: 0;
@@ -119,11 +119,54 @@
             background: #1a1a2e;
             color: white;
         }
+        
+        .phone-spoiler {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        .phone-hidden {
+            filter: blur(8px);
+            transition: filter 0.3s;
+        }
+        
+        .phone-visible {
+            filter: none;
+        }
+        
+        .phone-hint {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .emergency-contact {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+        }
+        
+        .emergency-contact h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .emergency-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📞 Дежурный</h1>
+        <h1>📞 Дежурный SRE</h1>
         
         <div class="duty-card">
             <div class="duty-type">
@@ -134,32 +177,53 @@
                 {% endif %}
             </div>
             <div class="duty-name">{{ duty_person.name }}</div>
-            <div class="duty-phone">{{ duty_person.phone }}</div>
+            <div class="duty-phone phone-spoiler" onclick="togglePhone(this)">
+                <span class="phone-hidden" data-phone="{{ duty_person.phone }}">•••• •••• ••••</span>
+                <div class="phone-hint">Нажмите, чтобы показать телефон</div>
+            </div>
         </div>
         
         <div class="info">
             <div class="info-item">
                 <strong>Текущее время:</strong> {{ current_time }}
             </div>
-            <div class="info-item">
-                <strong>Неделя ротации:</strong> {{ week_number + 1 }}
-            </div>
         </div>
         
         <div class="next-duty">
             <h3>Следующая неделя:</h3>
             <div class="next-duty-item">
-                <span>День: <strong>{{ next_day.name }}</strong></span>
+                <span><strong>{{ next_day.name }}</strong></span>
                 <span class="badge badge-day">День</span>
             </div>
             <div class="next-duty-item">
-                <span>Ночь: <strong>{{ next_night.name }}</strong></span>
+                <span><strong>{{ next_night.name }}</strong></span>
                 <span class="badge badge-night">Ночь</span>
+            </div>
+        </div>
+        
+        <div class="emergency-contact">
+            <h3>🚨 Экстренный контакт</h3>
+            <div class="emergency-name">{{ emergency_contact.name }}</div>
+            <div class="duty-phone phone-spoiler" onclick="togglePhone(this)">
+                <span class="phone-hidden" data-phone="{{ emergency_contact.phone }}">•••• •••• ••••</span>
+                <div class="phone-hint">Нажмите, чтобы показать телефон</div>
             </div>
         </div>
     </div>
     
     <script>
+        function togglePhone(element) {
+            const phoneSpan = element.querySelector('span[data-phone]');
+            const hint = element.querySelector('.phone-hint');
+            
+            if (phoneSpan.classList.contains('phone-hidden')) {
+                phoneSpan.textContent = phoneSpan.getAttribute('data-phone');
+                phoneSpan.classList.remove('phone-hidden');
+                phoneSpan.classList.add('phone-visible');
+                if (hint) hint.style.display = 'none';
+            }
+        }
+        
         // Автообновление каждую минуту
         setTimeout(function() {
             location.reload();
