@@ -166,6 +166,10 @@
             background: #ffe6e6;
         }
         
+        .saturday {
+            background: #ffe6e6;
+        }
+        
         .has-substitution {
             outline: 2px solid #8e7bff;
             outline-offset: -2px;
@@ -181,6 +185,31 @@
         <div class="header">
             <h1>📅 Календарь дежурств</h1>
             <a href="/" class="nav-link">🏠 Главная</a>
+        </div>
+        
+        <div class="employees-section">
+            <h2>👥 Сотрудники</h2>
+            <div class="employees-grid">
+                {% for emp in employees %}
+                <div class="employee-card">
+                    <div class="employee-title">{{ emp.name }}</div>
+                    <div class="form-group">
+                        <label>Имя:</label>
+                        <input type="text" id="emp-name-{{ emp.id }}" value="{{ emp.name }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Telegram:</label>
+                        <input type="text" id="emp-telegram-{{ emp.id }}" value="{{ emp.telegram }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Band:</label>
+                        <input type="text" id="emp-band-{{ emp.id }}" value="{{ emp.band }}">
+                    </div>
+                    <button class="btn-substitute" onclick="saveEmployee('{{ emp.id }}')">Сохранить</button>
+                </div>
+                {% endfor %}
+            </div>
+            <div id="employee-message" class="substitution-message" style="display: none;"></div>
         </div>
         
         <div class="substitution-section">
@@ -280,23 +309,13 @@
                                     <td class="empty-day"></td>
                                 {% else %}
                                     {% set is_today = (day_data.day == now.day and month_info.month == now.month and month_info.year == now.year) %}
-                                    <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if is_today %}today{% endif %} {% if day_data.primary_sub or day_data.secondary_sub %}has-substitution{% endif %}">
+                                    <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if day_data.weekday == 5 %}saturday{% endif %} {% if is_today %}today{% endif %} {% if day_data.primary_sub or day_data.secondary_sub %}has-substitution{% endif %}">
                                         <div class="day-number">{{ day_data.day }}</div>
                                     {% if day_data.primary %}
                                         <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
                                     {% endif %}
                                     {% if day_data.secondary %}
                                         <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
-                                    {% endif %}
-                                    {% if day_data.primary_sub %}
-                                        <div class="substitution-badge">
-                                            Primary замена: {{ day_data.primary_sub.from.name }} → {{ day_data.primary_sub.to.name }}
-                                        </div>
-                                    {% endif %}
-                                    {% if day_data.secondary_sub %}
-                                        <div class="substitution-badge">
-                                            Secondary замена: {{ day_data.secondary_sub.from.name }} → {{ day_data.secondary_sub.to.name }}
-                                        </div>
                                     {% endif %}
                                     </td>
                                 {% endif %}
@@ -316,6 +335,44 @@
             margin-bottom: 40px;
             padding-bottom: 30px;
             border-bottom: 2px solid #eee;
+        }
+        
+        .employees-section {
+            margin-top: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .employees-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .employees-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .employee-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 16px;
+            border: 2px solid #eee;
+        }
+        
+        .employee-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
         }
         
         .substitution-section h2 {
@@ -493,16 +550,16 @@
         function updateFormWarnings() {
             const startDate = document.getElementById('sub-start-date').value;
             const endDate = document.getElementById('sub-end-date').value || startDate;
-            const dutyType = document.getElementById('sub-duty-type').value;
+            const dutyTypeSelect = document.getElementById('sub-duty-type');
+            const dutyType = dutyTypeSelect.value;
             const message = document.getElementById('substitution-message');
             const createBtn = document.querySelector('#substitution-form .form-buttons .btn-substitute');
             
             if (!startDate) return;
             
             if (dutyType === 'secondary' && rangeHasWeekend(startDate, endDate)) {
-                showMessage('warning', 'Secondary в выходные не отображается. Выберите Primary или уберите выходные из диапазона.');
-                createBtn.disabled = true;
-                createBtn.style.opacity = '0.6';
+                dutyTypeSelect.value = 'primary';
+                showMessage('warning', 'Диапазон включает выходные, тип автоматически переключен на Primary.');
                 return;
             }
             
@@ -569,9 +626,46 @@
                 showMessage('error', 'Ошибка при удалении замены.');
             });
         }
+
+        function saveEmployee(employeeId) {
+            const name = document.getElementById(`emp-name-${employeeId}`).value.trim();
+            const telegram = document.getElementById(`emp-telegram-${employeeId}`).value.trim();
+            const band = document.getElementById(`emp-band-${employeeId}`).value.trim();
+
+            fetch(`/api/employees/${employeeId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    telegram: telegram,
+                    band: band
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showEmployeeMessage('error', data.error);
+                } else {
+                    showEmployeeMessage('success', 'Данные сотрудника сохранены.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showEmployeeMessage('error', 'Ошибка при сохранении сотрудника.');
+            });
+        }
         
         function showMessage(type, text) {
             const el = document.getElementById('substitution-message');
+            el.className = `substitution-message ${type}`;
+            el.textContent = text;
+            el.style.display = 'block';
+        }
+
+        function showEmployeeMessage(type, text) {
+            const el = document.getElementById('employee-message');
             el.className = `substitution-message ${type}`;
             el.textContent = text;
             el.style.display = 'block';

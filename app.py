@@ -11,7 +11,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Данные сотрудников (в порядке ротации)
-EMPLOYEES = [
+EMPLOYEE_DEFAULTS = [
     {
         'id': 'pavel',
         'name': 'Павел Аминов',
@@ -31,7 +31,6 @@ EMPLOYEES = [
         'band': '@ogurcov.maksim5cal'  # Замените на реальный Band
     }
 ]
-EMPLOYEE_BY_ID = {e['id']: e for e in EMPLOYEES}
 
 # Экстренный контакт (эскалация) - лид команды
 EMERGENCY_CONTACT = {
@@ -69,6 +68,41 @@ class DutySubstitution(db.Model):
             'reason': self.reason
         }
 
+class EmployeeProfile(db.Model):
+    id = db.Column(db.String(20), primary_key=True)
+    name = db.Column(db.String(100), nullable=True)
+    telegram = db.Column(db.String(100), nullable=True)
+    band = db.Column(db.String(100), nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'telegram': self.telegram,
+            'band': self.band
+        }
+
+def get_employees():
+    """Возвращает список сотрудников с учетом профилей из БД"""
+    profiles = {p.id: p for p in EmployeeProfile.query.all()}
+    employees = []
+    for emp in EMPLOYEE_DEFAULTS:
+        profile = profiles.get(emp['id'])
+        if profile:
+            employees.append({
+                'id': emp['id'],
+                'name': profile.name or emp['name'],
+                'telegram': profile.telegram or emp['telegram'],
+                'band': profile.band or emp['band']
+            })
+        else:
+            employees.append(emp.copy())
+    return employees
+
+def get_employee_map():
+    """Возвращает словарь сотрудников по id"""
+    employees = get_employees()
+    return {e['id']: e for e in employees}
 
 def get_week_number(date):
     """Вычисляет номер недели с начала ротации"""
@@ -107,10 +141,11 @@ def get_duty_for_week(week_num):
     ]
     
     primary_idx, secondary_idx = rotation[pattern]
-    return EMPLOYEES[primary_idx], EMPLOYEES[secondary_idx]
+    employees = get_employees()
+    return employees[primary_idx], employees[secondary_idx]
 
 
-def get_duty_for_date(date, check_substitutions=True, substitutions_map=None):
+def get_duty_for_date(date, check_substitutions=True, substitutions_map=None, employees_map=None):
     """
     Определяет дежурных для конкретной даты с учетом замен
     Суббота - Primary = недельный Primary
@@ -122,6 +157,8 @@ def get_duty_for_date(date, check_substitutions=True, substitutions_map=None):
     
     # Получаем базовых дежурных для недели
     week_primary, week_secondary = get_duty_for_week(week_num)
+    if employees_map is None:
+        employees_map = get_employee_map()
     
     # Проверяем замены в БД
     if check_substitutions:
@@ -142,7 +179,7 @@ def get_duty_for_date(date, check_substitutions=True, substitutions_map=None):
             if weekday in (5, 6) and substitution.duty_type == 'secondary':
                 continue
             # Находим заменяющего
-            substitute = next((e for e in EMPLOYEES if e['id'] == substitution.substitute_employee_id), None)
+            substitute = employees_map.get(substitution.substitute_employee_id)
             if substitute:
                 if substitution.duty_type == 'primary':
                     # Для выходных: замена Primary применяется к тому, кто будет показан как Primary
@@ -183,12 +220,26 @@ def get_substitution_map(start_date, end_date):
     return substitutions_map
 
 
-def get_calendar_month(year, month, substitutions_map=None):
+def get_substitution_map(start_date, end_date):
+    """Готовит словарь замен по датам для быстрых вычислений"""
+    substitutions = DutySubstitution.query.filter(
+        DutySubstitution.date >= start_date,
+        DutySubstitution.date <= end_date
+    ).all()
+    substitutions_map = {}
+    for substitution in substitutions:
+        substitutions_map.setdefault(substitution.date, {})[substitution.duty_type] = substitution
+    return substitutions_map
+
+
+def get_calendar_month(year, month, substitutions_map=None, employees_map=None):
     """Генерирует календарь для месяца с данными о дежурных"""
     # Используем встроенный модуль calendar
     cal = cal_module.monthcalendar(year, month)
     
     calendar_data = []
+    if employees_map is None:
+        employees_map = get_employee_map()
     
     for week in cal:
         week_data = []
@@ -201,7 +252,11 @@ def get_calendar_month(year, month, substitutions_map=None):
                 weekday = date.weekday()
                 
                 # Получаем дежурных для этой даты
-                primary, secondary = get_duty_for_date(date, substitutions_map=substitutions_map)
+                primary, secondary = get_duty_for_date(
+                    date,
+                    substitutions_map=substitutions_map,
+                    employees_map=employees_map
+                )
                 date_only = date.date()
                 day_subs = substitutions_map.get(date_only, {}) if substitutions_map else {}
                 primary_sub = day_subs.get('primary')
@@ -213,14 +268,8 @@ def get_calendar_month(year, month, substitutions_map=None):
                     'primary': primary,
                     'secondary': secondary,
                     'date': date,
-                    'primary_sub': {
-                        'from': EMPLOYEE_BY_ID.get(primary_sub.original_employee_id) if primary_sub else None,
-                        'to': EMPLOYEE_BY_ID.get(primary_sub.substitute_employee_id) if primary_sub else None,
-                    } if primary_sub else None,
-                    'secondary_sub': {
-                        'from': EMPLOYEE_BY_ID.get(secondary_sub.original_employee_id) if secondary_sub else None,
-                        'to': EMPLOYEE_BY_ID.get(secondary_sub.substitute_employee_id) if secondary_sub else None,
-                    } if secondary_sub else None
+                    'primary_sub': primary_sub,
+                    'secondary_sub': secondary_sub
                 })
         calendar_data.append(week_data)
     
@@ -263,7 +312,7 @@ def index():
                          next_secondary=next_secondary,
                          next_week_num=next_week_num,
                          emergency_contact=EMERGENCY_CONTACT,
-                         employees=EMPLOYEES,
+                         employees=get_employees(),
                          substitutions=next_week_substitutions,
                          weekday=weekday,
                          is_weekend=is_weekend)
@@ -280,6 +329,8 @@ def calendar_view():
     month_names = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
     
+    employees_map = get_employee_map()
+
     # Генерируем данные для 6 месяцев вперед (текущий + 5 следующих)
     months_data = []
     current_year = year
@@ -290,7 +341,28 @@ def calendar_view():
         last_day = cal_module.monthrange(current_year, current_month)[1]
         month_end = datetime(current_year, current_month, last_day).date()
         substitutions_map = get_substitution_map(month_start, month_end)
-        calendar_data = get_calendar_month(current_year, current_month, substitutions_map=substitutions_map)
+        calendar_data = get_calendar_month(
+            current_year,
+            current_month,
+            substitutions_map=substitutions_map,
+            employees_map=employees_map
+        )
+        for week in calendar_data:
+            for day in week:
+                if not day:
+                    continue
+                primary_sub = day.get('primary_sub')
+                secondary_sub = day.get('secondary_sub')
+                if primary_sub:
+                    day['primary_sub'] = {
+                        'from': employees_map.get(primary_sub.original_employee_id),
+                        'to': employees_map.get(primary_sub.substitute_employee_id)
+                    }
+                if secondary_sub:
+                    day['secondary_sub'] = {
+                        'from': employees_map.get(secondary_sub.original_employee_id),
+                        'to': employees_map.get(secondary_sub.substitute_employee_id)
+                    }
         months_data.append({
             'year': current_year,
             'month': current_month,
@@ -340,8 +412,35 @@ def calendar_view():
     return render_template('calendar.html',
                          months_data=months_data,
                          now=now,
-                         employees=EMPLOYEES,
+                         employees=get_employees(),
                          substitutions=substitutions)
+
+
+@app.route('/api/employees', methods=['GET'])
+def get_employees_api():
+    """Получить список сотрудников"""
+    return jsonify(get_employees())
+
+
+@app.route('/api/employees/<string:employee_id>', methods=['PUT'])
+def update_employee(employee_id):
+    """Обновить данные сотрудника"""
+    data = request.json or {}
+    employee_ids = {e['id'] for e in EMPLOYEE_DEFAULTS}
+    if employee_id not in employee_ids:
+        return jsonify({'error': 'Сотрудник не найден'}), 404
+
+    profile = EmployeeProfile.query.get(employee_id)
+    if not profile:
+        profile = EmployeeProfile(id=employee_id)
+        db.session.add(profile)
+
+    profile.name = data.get('name', profile.name)
+    profile.telegram = data.get('telegram', profile.telegram)
+    profile.band = data.get('band', profile.band)
+
+    db.session.commit()
+    return jsonify(profile.to_dict())
 
 
 @app.route('/api/substitutions', methods=['GET'])
@@ -371,6 +470,10 @@ def create_substitution():
     duty_type = data['duty_type']
     substitute_employee_id = data['substitute_employee_id']
     reason = data.get('reason', '')
+
+    employees_map = get_employee_map()
+    if substitute_employee_id not in employees_map:
+        return jsonify({'error': 'Неверный сотрудник для замены'}), 400
     
     created_substitutions = []
     skipped_dates = []
