@@ -219,7 +219,7 @@ def calendar_view():
     month_names = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
     
-    # Генерируем данные для 6 месяцев вперед
+    # Генерируем данные для 6 месяцев вперед (текущий + 5 следующих)
     months_data = []
     current_year = year
     current_month = month
@@ -238,6 +238,10 @@ def calendar_view():
         if current_month > 12:
             current_month = 1
             current_year += 1
+    
+    # Отладочная информация (можно убрать в продакшене)
+    month_list = [f"{m['month_name']} {m['year']}" for m in months_data]
+    print(f"Generated {len(months_data)} months: {month_list}")
     
     return render_template('calendar.html',
                          months_data=months_data,
