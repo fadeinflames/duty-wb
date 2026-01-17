@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Календарь дежурств SRE</title>
+    <script>
+        (function() {
+            try {
+                const isMobile = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+                if (isMobile) document.documentElement.classList.add('mobile');
+            } catch (e) {}
+        })();
+    </script>
     <style>
         * {
             margin: 0;
@@ -79,6 +87,14 @@
             .label-short {
                 display: inline;
             }
+        }
+        
+        .mobile .calendar-table-wrap {
+            display: none;
+        }
+        
+        .mobile .calendar-list {
+            display: block;
         }
         
         h1 {
