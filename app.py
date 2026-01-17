@@ -1,14 +1,20 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import datetime, timedelta
 import pytz
 import calendar as cal_module
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
+import os
+from functools import wraps
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///duty_substitutions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('APP_SECRET_KEY', 'change-me')
 db = SQLAlchemy(app)
+
+AUTH_USER = os.environ.get('APP_AUTH_USER', 'admin')
+AUTH_PASS = os.environ.get('APP_AUTH_PASS', 'admin')
 
 # Данные сотрудников (в порядке ротации)
 EMPLOYEE_DEFAULTS = [
@@ -103,6 +109,17 @@ def get_employee_map():
     """Возвращает словарь сотрудников по id"""
     employees = get_employees()
     return {e['id']: e for e in employees}
+
+
+def login_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not session.get('auth'):
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Unauthorized'}), 401
+            return redirect(url_for('login', next=request.path))
+        return func(*args, **kwargs)
+    return wrapper
 
 def get_week_number(date):
     """Вычисляет номер недели с начала ротации"""
@@ -220,6 +237,41 @@ def get_substitution_map(start_date, end_date):
     return substitutions_map
 
 
+def build_substitutions_list():
+    """Формирует список замен с отметкой диапазона"""
+    all_substitutions = DutySubstitution.query.order_by(
+        DutySubstitution.date,
+        DutySubstitution.duty_type,
+        DutySubstitution.original_employee_id,
+        DutySubstitution.substitute_employee_id
+    ).all()
+    substitutions = []
+    substitutions_by_key = {}
+    for s in all_substitutions:
+        key = (
+            s.duty_type,
+            s.original_employee_id,
+            s.substitute_employee_id,
+            s.reason or ''
+        )
+        substitutions_by_key.setdefault(key, []).append(s)
+
+    for s in all_substitutions:
+        key = (
+            s.duty_type,
+            s.original_employee_id,
+            s.substitute_employee_id,
+            s.reason or ''
+        )
+        dates = [x.date for x in substitutions_by_key[key]]
+        dates_set = set(dates)
+        is_range = (s.date - timedelta(days=1)) in dates_set or (s.date + timedelta(days=1)) in dates_set
+        s_dict = s.to_dict()
+        s_dict['range_type'] = 'range' if is_range else 'single'
+        substitutions.append(s_dict)
+    return substitutions
+
+
 def get_substitution_map(start_date, end_date):
     """Готовит словарь замен по датам для быстрых вычислений"""
     substitutions = DutySubstitution.query.filter(
@@ -318,6 +370,41 @@ def index():
                          is_weekend=is_weekend)
 
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Страница входа для защищенных разделов"""
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        if username == AUTH_USER and password == AUTH_PASS:
+            session['auth'] = True
+            next_url = request.args.get('next') or url_for('index')
+            return redirect(next_url)
+        return render_template('login.html', error='Неверный логин или пароль')
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.pop('auth', None)
+    return redirect(url_for('index'))
+
+
+@app.route('/contacts')
+@login_required
+def contacts():
+    """Страница редактирования контактов сотрудников"""
+    return render_template('contacts.html', employees=get_employees())
+
+
+@app.route('/overrides')
+@login_required
+def overrides():
+    """Страница замен дежурных"""
+    substitutions = build_substitutions_list()
+    return render_template('overrides.html', employees=get_employees(), substitutions=substitutions)
+
+
 @app.route('/calendar')
 def calendar_view():
     """Страница с календарем ротации на полгода"""
@@ -376,53 +463,20 @@ def calendar_view():
             current_month = 1
             current_year += 1
     
-    # Получаем все замены для отображения и помечаем диапазоны
-    all_substitutions = DutySubstitution.query.order_by(
-        DutySubstitution.date,
-        DutySubstitution.duty_type,
-        DutySubstitution.original_employee_id,
-        DutySubstitution.substitute_employee_id
-    ).all()
-    substitutions = []
-    substitutions_by_key = {}
-    for s in all_substitutions:
-        key = (
-            s.duty_type,
-            s.original_employee_id,
-            s.substitute_employee_id,
-            s.reason or ''
-        )
-        substitutions_by_key.setdefault(key, []).append(s)
-
-    # Для каждой замены определяем, является ли она частью диапазона
-    for s in all_substitutions:
-        key = (
-            s.duty_type,
-            s.original_employee_id,
-            s.substitute_employee_id,
-            s.reason or ''
-        )
-        dates = [x.date for x in substitutions_by_key[key]]
-        dates_set = set(dates)
-        is_range = (s.date - timedelta(days=1)) in dates_set or (s.date + timedelta(days=1)) in dates_set
-        s_dict = s.to_dict()
-        s_dict['range_type'] = 'range' if is_range else 'single'
-        substitutions.append(s_dict)
-    
     return render_template('calendar.html',
                          months_data=months_data,
-                         now=now,
-                         employees=get_employees(),
-                         substitutions=substitutions)
+                         now=now)
 
 
 @app.route('/api/employees', methods=['GET'])
+@login_required
 def get_employees_api():
     """Получить список сотрудников"""
     return jsonify(get_employees())
 
 
 @app.route('/api/employees/<string:employee_id>', methods=['PUT'])
+@login_required
 def update_employee(employee_id):
     """Обновить данные сотрудника"""
     data = request.json or {}
@@ -444,6 +498,7 @@ def update_employee(employee_id):
 
 
 @app.route('/api/substitutions', methods=['GET'])
+@login_required
 def get_substitutions():
     """Получить все замены"""
     start_date = request.args.get('start_date')
@@ -461,6 +516,7 @@ def get_substitutions():
 
 
 @app.route('/api/substitutions', methods=['POST'])
+@login_required
 def create_substitution():
     """Создать замену дежурного (может быть на одну дату или диапазон)"""
     data = request.json
@@ -554,6 +610,7 @@ def create_substitution():
 
 
 @app.route('/api/substitutions/<int:sub_id>', methods=['DELETE'])
+@login_required
 def delete_substitution(sub_id):
     """Удалить замену"""
     substitution = DutySubstitution.query.get_or_404(sub_id)

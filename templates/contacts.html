@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакты</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2.2em;
+            margin-bottom: 15px;
+        }
+        
+        .nav-link {
+            display: inline-block;
+            margin: 6px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .employees-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .employee-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 16px;
+            border: 2px solid #eee;
+        }
+        
+        .employee-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s;
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+        }
+        
+        .message {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            text-align: left;
+            display: none;
+        }
+        
+        .message.success {
+            background: #e7f3ff;
+            border: 1px solid #b6d9ff;
+            color: #0b4f8a;
+        }
+        
+        .message.error {
+            background: #fdecea;
+            border: 1px solid #f5c6cb;
+            color: #7a1c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 Контакты</h1>
+            <a href="/" class="nav-link">🏠 Главная</a>
+            <a href="/calendar" class="nav-link">📅 Календарь</a>
+            <a href="/overrides" class="nav-link">🔄 Замены</a>
+            <a href="/logout" class="nav-link">🚪 Выйти</a>
+        </div>
+        
+        <div class="employees-grid">
+            {% for emp in employees %}
+            <div class="employee-card">
+                <div class="employee-title">{{ emp.name }}</div>
+                <div class="form-group">
+                    <label>Имя:</label>
+                    <input type="text" id="emp-name-{{ emp.id }}" value="{{ emp.name }}">
+                </div>
+                <div class="form-group">
+                    <label>Telegram:</label>
+                    <input type="text" id="emp-telegram-{{ emp.id }}" value="{{ emp.telegram }}">
+                </div>
+                <div class="form-group">
+                    <label>Band:</label>
+                    <input type="text" id="emp-band-{{ emp.id }}" value="{{ emp.band }}">
+                </div>
+                <button class="btn" onclick="saveEmployee('{{ emp.id }}')">Сохранить</button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div id="employee-message" class="message"></div>
+    </div>
+    
+    <script>
+        function saveEmployee(employeeId) {
+            const name = document.getElementById(`emp-name-${employeeId}`).value.trim();
+            const telegram = document.getElementById(`emp-telegram-${employeeId}`).value.trim();
+            const band = document.getElementById(`emp-band-${employeeId}`).value.trim();
+
+            fetch(`/api/employees/${employeeId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    telegram: telegram,
+                    band: band
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('error', data.error);
+                } else {
+                    showMessage('success', 'Данные сотрудника сохранены.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('error', 'Ошибка при сохранении сотрудника.');
+            });
+        }
+        
+        function showMessage(type, text) {
+            const el = document.getElementById('employee-message');
+            el.className = `message ${type}`;
+            el.textContent = text;
+            el.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
