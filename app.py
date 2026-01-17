@@ -1,44 +1,45 @@
 from flask import Flask, render_template
 from datetime import datetime, timedelta
 import pytz
+from calendar import monthrange
 
 app = Flask(__name__)
 
-# Данные сотрудников
-EMPLOYEES = {
-    'pavel': {
+# Данные сотрудников (в порядке ротации)
+EMPLOYEES = [
+    {
+        'id': 'pavel',
         'name': 'Павел Аминов',
-        'phone': '+7 925 020 6969'
+        'telegram': '@username',  # Замените на реальный Telegram
+        'bend': '@username'  # Замените на реальный Bend
     },
-    'sergey': {
+    {
+        'id': 'sergey',
         'name': 'Сергей Петухов',
-        'phone': '+7 915 464 7728'
+        'telegram': '@username',  # Замените на реальный Telegram
+        'bend': '@username'  # Замените на реальный Bend
     },
-    'anna': {
-        'name': 'Анна',
-        'phone': '+7 (999) 000-00-00'  # Замените на реальный телефон
+    {
+        'id': 'maxim',
+        'name': 'Максим Огурцов',
+        'telegram': '@username',  # Замените на реальный Telegram
+        'bend': '@username'  # Замените на реальный Bend
     }
-}
+]
 
-# Флаг для включения Анны как постоянного дневного дежурного
-# Когда Анна начнет работать, установите ANNA_ENABLED = True
-ANNA_ENABLED = False
-
-# Экстренный контакт
+# Экстренный контакт (эскалация) - лид команды
 EMERGENCY_CONTACT = {
-    'name': 'Максим',  # Замените на ваше имя
-    'phone': '+7 (966) 121 9219'  # Замените на ваш телефон
+    'name': 'Максим Гусев',
+    'telegram': '@username',  # Замените на реальный Telegram
+    'bend': '@username'  # Замените на реальный Bend (Mattermost)
 }
 
 # Часовой пояс (MSK - Московское время)
 TIMEZONE = pytz.timezone('Europe/Moscow')
 
 # Дата начала ротации (можно изменить)
+# Начало первой недели ротации
 START_DATE = datetime(2024, 1, 1, tzinfo=TIMEZONE)
-
-# Время дня/ночи
-DAY_START = 8  # 8:00
-DAY_END = 20   # 20:00
 
 
 def get_week_number(date):
@@ -47,92 +48,150 @@ def get_week_number(date):
     return delta.days // 7
 
 
-def is_day_time(hour):
-    """Определяет, день сейчас или ночь"""
-    return DAY_START <= hour < DAY_END
+def get_duty_for_week(week_num):
+    """
+    Определяет Primary и Secondary для недели
+    По паттерну из скриншота:
+    Неделя 0: P: Павел(0), S: Сергей(1)
+    Неделя 1: P: Сергей(1), S: Максим(2)
+    Неделя 2: P: Максим(2), S: Павел(0)
+    Неделя 3: P: Павел(0), S: Максим(2)
+    Неделя 4: P: Сергей(1), S: Павел(0)
+    Неделя 5: P: Максим(2), S: Сергей(1)
+    """
+    # Primary ротация: 0-Павел, 1-Сергей, 2-Максим, 3-Павел...
+    primary_idx = week_num % len(EMPLOYEES)
+    
+    # Secondary ротация по паттерну:
+    # Неделя % 6 == 0: Secondary = 1 (Сергей)
+    # Неделя % 6 == 1: Secondary = 2 (Максим)
+    # Неделя % 6 == 2: Secondary = 0 (Павел)
+    # Неделя % 6 == 3: Secondary = 2 (Максим)
+    # Неделя % 6 == 4: Secondary = 0 (Павел)
+    # Неделя % 6 == 5: Secondary = 1 (Сергей)
+    
+    pattern = week_num % 6
+    if pattern == 0:
+        secondary_idx = 1  # Сергей
+    elif pattern == 1:
+        secondary_idx = 2  # Максим
+    elif pattern == 2:
+        secondary_idx = 0  # Павел
+    elif pattern == 3:
+        secondary_idx = 2  # Максим
+    elif pattern == 4:
+        secondary_idx = 0  # Павел
+    else:  # pattern == 5
+        secondary_idx = 1  # Сергей
+    
+    return EMPLOYEES[primary_idx], EMPLOYEES[secondary_idx]
 
 
 def get_current_duty():
-    """Определяет текущего дежурного"""
-    # Получаем текущее время в MSK (Московское время)
+    """Определяет текущих Primary и Secondary дежурных"""
     now = datetime.now(TIMEZONE)
     week_num = get_week_number(now)
-    hour = now.hour
+    weekday = now.weekday()  # 0 = Monday, 6 = Sunday
     
-    # Определяем, день или ночь
-    is_day = is_day_time(hour)
+    primary, secondary = get_duty_for_week(week_num)
     
-    # Если Анна включена - она всегда днем, ночью ротация между Павлом и Сергеем
-    if ANNA_ENABLED:
-        if is_day:
-            return EMPLOYEES['anna'], 'day'
-        else:
-            # Ночью ротация между Павлом и Сергеем
-            if week_num % 2 == 0:
-                return EMPLOYEES['sergey'], 'night'
-            else:
-                return EMPLOYEES['pavel'], 'night'
+    # На воскресенье только Secondary
+    if weekday == 6:  # Sunday
+        return None, secondary
     else:
-        # Старая логика ротации (пока Анна не работает)
-        # Если неделя четная - Павел днем, Сергей ночью
-        # Если неделя нечетная - Сергей днем, Павел ночью
-        if week_num % 2 == 0:
-            if is_day:
-                return EMPLOYEES['pavel'], 'day'
-            else:
-                return EMPLOYEES['sergey'], 'night'
-        else:
-            if is_day:
-                return EMPLOYEES['sergey'], 'day'
-            else:
-                return EMPLOYEES['pavel'], 'night'
+        return primary, secondary
+
+
+def get_calendar_data(year, month):
+    """Генерирует данные календаря для указанного месяца"""
+    last_day_num = monthrange(year, month)[1]
+    
+    calendar = []
+    
+    for day in range(1, last_day_num + 1):
+        date = datetime(year, month, day, tzinfo=TIMEZONE)
+        weekday = date.weekday()
+        
+        # Определяем неделю для этого дня
+        day_week = get_week_number(date)
+        
+        # Получаем дежурных для этой недели
+        primary, secondary = get_duty_for_week(day_week)
+        
+        # На воскресенье только Secondary
+        if weekday == 6:  # Sunday
+            primary = None
+        
+        calendar.append({
+            'day': day,
+            'weekday': weekday,
+            'primary': primary,
+            'secondary': secondary
+        })
+    
+    return calendar
 
 
 @app.route('/')
 def index():
-    """Главная страница с информацией о текущем дежурном"""
-    duty_person, duty_type = get_current_duty()
+    """Главная страница с информацией о текущих дежурных"""
+    primary, secondary = get_current_duty()
     
     now = datetime.now(TIMEZONE)
     week_num = get_week_number(now)
     
-    # Определяем следующего дежурного для информации
-    next_week_num = week_num + 1
-    if ANNA_ENABLED:
-        # Анна всегда днем
-        next_day = EMPLOYEES['anna']
-        # Ночью ротация
-        if next_week_num % 2 == 0:
-            next_night = EMPLOYEES['sergey']
-        else:
-            next_night = EMPLOYEES['pavel']
-    else:
-        # Старая логика ротации
-        if next_week_num % 2 == 0:
-            next_day = EMPLOYEES['pavel']
-            next_night = EMPLOYEES['sergey']
-        else:
-            next_day = EMPLOYEES['sergey']
-            next_night = EMPLOYEES['pavel']
+    # Текущая неделя
+    current_primary, current_secondary = get_duty_for_week(week_num)
+    
+    # Следующая неделя
+    next_primary, next_secondary = get_duty_for_week(week_num + 1)
     
     return render_template('index.html',
-                         duty_person=duty_person,
-                         duty_type=duty_type,
+                         primary=primary if primary else current_primary,
+                         secondary=secondary,
                          current_time=now.strftime('%d.%m.%Y %H:%M MSK'),
-                         week_number=week_num,
-                         next_day=next_day,
-                         next_night=next_night,
+                         next_primary=next_primary,
+                         next_secondary=next_secondary,
                          emergency_contact=EMERGENCY_CONTACT)
+
+
+@app.route('/calendar')
+def calendar():
+    """Страница с календарем ротации"""
+    now = datetime.now(TIMEZONE)
+    year = now.year
+    month = now.month
+    
+    # Получаем данные для текущего месяца
+    calendar_data = get_calendar_data(year, month)
+    
+    # Также для следующего месяца
+    if month == 12:
+        next_year = year + 1
+        next_month = 1
+    else:
+        next_year = year
+        next_month = month + 1
+    
+    next_calendar_data = get_calendar_data(next_year, next_month)
+    
+    return render_template('calendar.html',
+                         year=year,
+                         month=month,
+                         next_year=next_year,
+                         next_month=next_month,
+                         calendar_data=calendar_data,
+                         next_calendar_data=next_calendar_data,
+                         now=now)
 
 
 @app.route('/api/current')
 def api_current():
-    """API endpoint для получения текущего дежурного"""
-    duty_person, duty_type = get_current_duty()
+    """API endpoint для получения текущих дежурных"""
+    primary, secondary = get_current_duty()
     return {
-        'name': duty_person['name'],
-        'phone': duty_person['phone'],
-        'duty_type': duty_type,
+        'primary': primary['name'] if primary else None,
+        'secondary': secondary['name'],
         'timestamp': datetime.now(TIMEZONE).isoformat()
     }
 

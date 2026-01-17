@@ -26,7 +26,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
-            max-width: 600px;
+            max-width: 700px;
             width: 100%;
             text-align: center;
         }
@@ -37,16 +37,47 @@
             font-size: 2.5em;
         }
         
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .duty-section {
+            margin: 20px 0;
+        }
+        
+        .duty-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
         .duty-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
+            padding: 25px;
+        }
+        
+        .duty-card.secondary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
         
         .duty-type {
-            font-size: 0.9em;
+            font-size: 0.85em;
             opacity: 0.9;
             margin-bottom: 10px;
             text-transform: uppercase;
@@ -54,18 +85,43 @@
         }
         
         .duty-name {
-            font-size: 2em;
+            font-size: 1.8em;
             font-weight: bold;
-            margin: 15px 0;
+            margin: 10px 0;
         }
         
-        .duty-phone {
-            font-size: 1.5em;
+        .duty-contacts {
             margin-top: 15px;
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        
+        .duty-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            display: inline-block;
+            border-radius: 6px;
+        }
+        
+        .duty-contact-label {
+            font-weight: bold;
+            min-width: 70px;
+            opacity: 0.9;
+        }
+        
+        .duty-contact-value {
+            opacity: 1;
+        }
+        
+        .section-title {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-align: left;
         }
         
         .info {
@@ -90,59 +146,37 @@
         .next-duty h3 {
             color: #333;
             margin-bottom: 15px;
+            text-align: left;
         }
         
-        .next-duty-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            margin: 5px 0;
+        .next-duty-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .next-card {
             background: #f9f9f9;
-            border-radius: 8px;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #eee;
         }
         
-        .badge {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8em;
+        .next-card-title {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .next-card-name {
+            font-size: 1.3em;
             font-weight: bold;
-            margin-left: 10px;
-        }
-        
-        .badge-day {
-            background: #ffd700;
             color: #333;
         }
         
-        .badge-night {
-            background: #1a1a2e;
-            color: white;
-        }
-        
-        .phone-spoiler {
-            cursor: pointer;
-            user-select: none;
-            position: relative;
-        }
-        
-        .phone-hidden {
-            filter: blur(8px);
-            transition: filter 0.3s;
-        }
-        
-        .phone-visible {
-            filter: none;
-        }
-        
-        .phone-hint {
-            font-size: 0.8em;
-            opacity: 0.7;
-            margin-top: 5px;
-            font-style: italic;
-        }
-        
-        .emergency-contact {
+        .escalation {
             margin-top: 30px;
             padding: 20px;
             background: #fff3cd;
@@ -150,17 +184,42 @@
             border-radius: 10px;
         }
         
-        .emergency-contact h3 {
-            color: #856404;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-        
-        .emergency-name {
-            font-size: 1.3em;
-            font-weight: bold;
+        .escalation h3 {
             color: #856404;
             margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .escalation-text {
+            color: #856404;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+        
+        .escalation-contacts {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .escalation-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 6px;
+        }
+        
+        .escalation-contact-label {
+            font-weight: bold;
+            min-width: 80px;
+            text-align: left;
+        }
+        
+        .escalation-contact-value {
+            color: #856404;
         }
     </style>
 </head>
@@ -168,18 +227,39 @@
     <div class="container">
         <h1>📞 Дежурный SRE</h1>
         
-        <div class="duty-card">
-            <div class="duty-type">
-                {% if duty_type == 'day' %}
-                    ☀️ Дневное дежурство
-                {% else %}
-                    🌙 Ночное дежурство
-                {% endif %}
-            </div>
-            <div class="duty-name">{{ duty_person.name }}</div>
-            <div class="duty-phone phone-spoiler" onclick="togglePhone(this)">
-                <span class="phone-hidden" data-phone="{{ duty_person.phone }}">•••• •••• ••••</span>
-                <div class="phone-hint">Нажмите, чтобы показать телефон</div>
+        <a href="/calendar" class="nav-link">📅 Календарь</a>
+        
+        <div class="duty-section">
+            <h2 class="section-title">Текущие дежурные</h2>
+            <div class="duty-cards">
+                <div class="duty-card">
+                    <div class="duty-type">Primary</div>
+                    <div class="duty-name">{{ primary.name }}</div>
+                    <div class="duty-contacts">
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Telegram:</span>
+                            <span class="duty-contact-value">{{ primary.telegram }}</span>
+                        </div>
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Bend:</span>
+                            <span class="duty-contact-value">{{ primary.bend }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="duty-card secondary">
+                    <div class="duty-type">Secondary</div>
+                    <div class="duty-name">{{ secondary.name }}</div>
+                    <div class="duty-contacts">
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Telegram:</span>
+                            <span class="duty-contact-value">{{ secondary.telegram }}</span>
+                        </div>
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Bend:</span>
+                            <span class="duty-contact-value">{{ secondary.bend }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -191,39 +271,37 @@
         
         <div class="next-duty">
             <h3>Следующая неделя:</h3>
-            <div class="next-duty-item">
-                <span><strong>{{ next_day.name }}</strong></span>
-                <span class="badge badge-day">День</span>
-            </div>
-            <div class="next-duty-item">
-                <span><strong>{{ next_night.name }}</strong></span>
-                <span class="badge badge-night">Ночь</span>
+            <div class="next-duty-cards">
+                <div class="next-card">
+                    <div class="next-card-title">Primary</div>
+                    <div class="next-card-name">{{ next_primary.name }}</div>
+                </div>
+                <div class="next-card">
+                    <div class="next-card-title">Secondary</div>
+                    <div class="next-card-name">{{ next_secondary.name }}</div>
+                </div>
             </div>
         </div>
         
-        <div class="emergency-contact">
-            <h3>🚨 Экстренный контакт</h3>
-            <div class="emergency-name">{{ emergency_contact.name }}</div>
-            <div class="duty-phone phone-spoiler" onclick="togglePhone(this)">
-                <span class="phone-hidden" data-phone="{{ emergency_contact.phone }}">•••• •••• ••••</span>
-                <div class="phone-hint">Нажмите, чтобы показать телефон</div>
+        <div class="escalation">
+            <h3>🚨 Эскалация</h3>
+            <div class="escalation-text">
+                В случае экстренных ситуаций обращайтесь к <strong>{{ emergency_contact.name }}</strong>
+            </div>
+            <div class="escalation-contacts">
+                <div class="escalation-contact-item">
+                    <span class="escalation-contact-label">Telegram:</span>
+                    <span class="escalation-contact-value">{{ emergency_contact.telegram }}</span>
+                </div>
+                <div class="escalation-contact-item">
+                    <span class="escalation-contact-label">Bend:</span>
+                    <span class="escalation-contact-value">{{ emergency_contact.bend }}</span>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
-        function togglePhone(element) {
-            const phoneSpan = element.querySelector('span[data-phone]');
-            const hint = element.querySelector('.phone-hint');
-            
-            if (phoneSpan.classList.contains('phone-hidden')) {
-                phoneSpan.textContent = phoneSpan.getAttribute('data-phone');
-                phoneSpan.classList.remove('phone-hidden');
-                phoneSpan.classList.add('phone-visible');
-                if (hint) hint.style.display = 'none';
-            }
-        }
-        
         // Автообновление каждую минуту
         setTimeout(function() {
             location.reload();

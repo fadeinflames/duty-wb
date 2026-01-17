@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь дежурств SRE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        
+        .nav-link {
+            display: inline-block;
+            margin: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .calendar-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .calendar {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .calendar-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .calendar-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #555;
+        }
+        
+        .calendar-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            vertical-align: top;
+            height: 80px;
+        }
+        
+        .day-number {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .duty-info {
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        
+        .primary-info {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .secondary-info {
+            color: #4facfe;
+            font-weight: bold;
+        }
+        
+        .empty-day {
+            background: #f5f5f5;
+        }
+        
+        .today {
+            background: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+        }
+        
+        .sunday {
+            background: #ffe6e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Календарь дежурств</h1>
+            <a href="/" class="nav-link">🏠 Главная</a>
+        </div>
+        
+        <div class="calendar-container">
+            <div class="calendar">
+                <div class="calendar-title">
+                    {% set month_names = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                                         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'] %}
+                    {{ month_names[month] }} {{ year }}
+                </div>
+                <table class="calendar-table">
+                    <thead>
+                        <tr>
+                            <th>Пн</th>
+                            <th>Вт</th>
+                            <th>Ср</th>
+                            <th>Чт</th>
+                            <th>Пт</th>
+                            <th>Сб</th>
+                            <th>Вс</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] %}
+                        {% set month_days = calendar_data|length %}
+                        {% set first_day = calendar_data[0] %}
+                        {% set first_weekday = first_day.weekday %}
+                        
+                        {% set current_day = 1 %}
+                        {% for week in range(6) %}
+                            <tr>
+                                {% for day_of_week in range(7) %}
+                                    {% if week == 0 and day_of_week < first_weekday %}
+                                        <td class="empty-day"></td>
+                                    {% elif current_day <= month_days %}
+                                        {% set day_data = calendar_data[current_day - 1] %}
+                                        {% set is_today = (day_data.day == now.day and month == now.month and year == now.year) %}
+                                        <td class="{% if day_of_week == 6 %}sunday{% endif %} {% if is_today %}today{% endif %}">
+                                            <div class="day-number">{{ day_data.day }}</div>
+                                            {% if day_data.primary %}
+                                                <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
+                                            {% endif %}
+                                            <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                        </td>
+                                        {% set current_day = current_day + 1 %}
+                                    {% else %}
+                                        <td class="empty-day"></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% if current_day > month_days %}
+                                {% break %}
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="calendar">
+                <div class="calendar-title">
+                    {% set month_names = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                                         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'] %}
+                    {{ month_names[next_month] }} {{ next_year }}
+                </div>
+                <table class="calendar-table">
+                    <thead>
+                        <tr>
+                            <th>Пн</th>
+                            <th>Вт</th>
+                            <th>Ср</th>
+                            <th>Чт</th>
+                            <th>Пт</th>
+                            <th>Сб</th>
+                            <th>Вс</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set next_first_day = next_calendar_data[0] %}
+                        {% set next_first_weekday = next_first_day.weekday %}
+                        {% set next_month_days = next_calendar_data|length %}
+                        
+                        {% set next_current_day = 1 %}
+                        {% for week in range(6) %}
+                            <tr>
+                                {% for day_of_week in range(7) %}
+                                    {% if week == 0 and day_of_week < next_first_weekday %}
+                                        <td class="empty-day"></td>
+                                    {% elif next_current_day <= next_month_days %}
+                                        {% set day_data = next_calendar_data[next_current_day - 1] %}
+                                        <td class="{% if day_of_week == 6 %}sunday{% endif %}">
+                                            <div class="day-number">{{ day_data.day }}</div>
+                                            {% if day_data.primary %}
+                                                <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
+                                            {% endif %}
+                                            <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                        </td>
+                                        {% set next_current_day = next_current_day + 1 %}
+                                    {% else %}
+                                        <td class="empty-day"></td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% if next_current_day > next_month_days %}
+                                {% break %}
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
