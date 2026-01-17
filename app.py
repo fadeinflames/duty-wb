@@ -16,19 +16,19 @@ EMPLOYEES = [
         'id': 'pavel',
         'name': 'Павел Аминов',
         'telegram': '@nytera',  # Замените на реальный Telegram
-        'bend': '@aminov.pavel3'  # Замените на реальный Bend
+        'band': '@aminov.pavel3'  # Замените на реальный Band
     },
     {
         'id': 'sergey',
         'name': 'Сергей Петухов',
         'telegram': '@Fornization',  # Замените на реальный Telegram
-        'bend': '@petuhov.sergey15'  # Замените на реальный Bend
+        'band': '@petuhov.sergey15'  # Замените на реальный Band
     },
     {
         'id': 'maxim',
         'name': 'Максим Огурцов',
         'telegram': '@username',  # Замените на реальный Telegram
-        'bend': '@ogurcov.maksim5cal'  # Замените на реальный Bend
+        'band': '@ogurcov.maksim5cal'  # Замените на реальный Band
     }
 ]
 
@@ -36,7 +36,7 @@ EMPLOYEES = [
 EMERGENCY_CONTACT = {
     'name': 'Максим Гусев',
     'telegram': '@fadeinflames',  # Замените на реальный Telegram
-    'bend': '@username'  # Замените на реальный Bend (Mattermost)
+    'band': '@username'  # Замените на реальный Band (Mattermost)
 }
 
 # Часовой пояс (MSK - Московское время)
