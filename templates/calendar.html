@@ -33,6 +33,32 @@
             margin-bottom: 40px;
         }
         
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .nav-link {
+                margin: 6px 4px;
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+            .calendar-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .calendar-table th,
+            .calendar-table td {
+                padding: 6px;
+                font-size: 0.8em;
+            }
+            .calendar-table td {
+                height: 80px;
+            }
+        }
+        
         h1 {
             color: #333;
             font-size: 2.5em;
@@ -185,6 +211,7 @@
         <div class="header">
             <h1>📅 Календарь дежурств</h1>
             <a href="/" class="nav-link">🏠 Главная</a>
+            <a href="/overrides" class="nav-link">🔄 Замены</a>
         </div>
         
         <div class="calendar-container">

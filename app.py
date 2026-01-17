@@ -14,7 +14,7 @@ app.config['SECRET_KEY'] = os.environ.get('APP_SECRET_KEY', 'change-me')
 db = SQLAlchemy(app)
 
 AUTH_USER = os.environ.get('APP_AUTH_USER', 'admin')
-AUTH_PASS = os.environ.get('APP_AUTH_PASS', 'admin')
+AUTH_PASS = os.environ.get('APP_AUTH_PASS', 'wbadminsre')
 
 # Данные сотрудников (в порядке ротации)
 EMPLOYEE_DEFAULTS = [
