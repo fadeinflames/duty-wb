@@ -221,6 +221,122 @@
         .escalation-contact-value {
             color: #856404;
         }
+        
+        .substitution-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .substitution-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .substitution-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #eee;
+        }
+        
+        .substitution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .substitution-info {
+            text-align: left;
+        }
+        
+        .substitution-date {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .substitution-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .substitution-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-substitute {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s;
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-substitute:hover {
+            background: #5568d3;
+        }
+        
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+        }
+        
+        .substitution-form {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -283,6 +399,59 @@
             </div>
         </div>
         
+        <div class="substitution-section">
+            <h3>🔄 Замены дежурных</h3>
+            <div id="substitutions-list">
+                {% for sub in substitutions %}
+                <div class="substitution-card" data-sub-id="{{ sub.id }}">
+                    <div class="substitution-header">
+                        <div class="substitution-info">
+                            <div class="substitution-date">{{ sub.date }}</div>
+                            <div class="substitution-details">
+                                <strong>{{ sub.duty_type|title }}:</strong> 
+                                {{ sub.original_employee_id }} → {{ sub.substitute_employee_id }}
+                                {% if sub.reason %} ({{ sub.reason }}){% endif %}
+                            </div>
+                        </div>
+                        <button class="btn-substitute btn-remove" onclick="removeSubstitution({{ sub.id }})">Удалить</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn-substitute" onclick="showSubstitutionForm()">+ Добавить замену</button>
+            </div>
+            <div id="substitution-form" class="substitution-form" style="display: none;">
+                <div class="form-group">
+                    <label>Дата:</label>
+                    <input type="date" id="sub-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Тип дежурства:</label>
+                    <select id="sub-duty-type" required>
+                        <option value="primary">Primary</option>
+                        <option value="secondary">Secondary</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Кто заменяет:</label>
+                    <select id="sub-substitute" required>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Причина (необязательно):</label>
+                    <input type="text" id="sub-reason" placeholder="Например: отпуск">
+                </div>
+                <div class="form-buttons">
+                    <button class="btn-substitute" onclick="createSubstitution()">Создать</button>
+                    <button class="btn-substitute btn-cancel" onclick="hideSubstitutionForm()">Отмена</button>
+                </div>
+            </div>
+        </div>
+        
         <div class="escalation">
             <h3>🚨 Эскалация</h3>
             <div class="escalation-text">
@@ -302,6 +471,107 @@
     </div>
     
     <script>
+        const employees = {{ employees|tojson }};
+        
+        function showSubstitutionForm() {
+            document.getElementById('substitution-form').style.display = 'block';
+            // Устанавливаем дату на следующий понедельник
+            const nextMonday = new Date();
+            nextMonday.setDate(nextMonday.getDate() + (7 - nextMonday.getDay() + 1) % 7 || 7);
+            document.getElementById('sub-date').value = nextMonday.toISOString().split('T')[0];
+        }
+        
+        function hideSubstitutionForm() {
+            document.getElementById('substitution-form').style.display = 'none';
+        }
+        
+        function createSubstitution() {
+            const date = document.getElementById('sub-date').value;
+            const dutyType = document.getElementById('sub-duty-type').value;
+            const substitute = document.getElementById('sub-substitute').value;
+            const reason = document.getElementById('sub-reason').value;
+            
+            // Получаем оригинального дежурного через API
+            fetch(`/api/current?date=${date}`)
+            .then(response => response.json())
+            .then(currentDuty => {
+                let original;
+                if (dutyType === 'primary') {
+                    original = currentDuty.primary_id || '{{ next_primary.id }}';
+                } else {
+                    original = currentDuty.secondary_id || '{{ next_secondary.id }}';
+                }
+                
+                return fetch('/api/substitutions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        duty_type: dutyType,
+                        original_employee_id: original,
+                        substitute_employee_id: substitute,
+                        reason: reason
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Если API не работает, используем дефолтные значения
+                const original = dutyType === 'primary' ? '{{ next_primary.id }}' : '{{ next_secondary.id }}';
+                fetch('/api/substitutions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        duty_type: dutyType,
+                        original_employee_id: original,
+                        substitute_employee_id: substitute,
+                        reason: reason
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        location.reload();
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Ошибка при создании замены');
+                });
+            });
+        }
+        
+        function removeSubstitution(subId) {
+            if (!confirm('Удалить эту замену?')) return;
+            
+            fetch(`/api/substitutions/${subId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при удалении замены');
+            });
+        }
+        
         // Автообновление каждую минуту
         setTimeout(function() {
             location.reload();
