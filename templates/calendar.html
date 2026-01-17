@@ -166,6 +166,7 @@
                         
                         {% set current_day = 1 %}
                         {% for week in range(6) %}
+                            {% if current_day <= month_days or (week == 0 and current_day == 1) %}
                             <tr>
                                 {% for day_of_week in range(7) %}
                                     {% if week == 0 and day_of_week < first_weekday %}
@@ -186,8 +187,6 @@
                                     {% endif %}
                                 {% endfor %}
                             </tr>
-                            {% if current_day > month_days %}
-                                {% break %}
                             {% endif %}
                         {% endfor %}
                     </tbody>
@@ -219,6 +218,7 @@
                         
                         {% set next_current_day = 1 %}
                         {% for week in range(6) %}
+                            {% if next_current_day <= next_month_days or (week == 0 and next_current_day == 1) %}
                             <tr>
                                 {% for day_of_week in range(7) %}
                                     {% if week == 0 and day_of_week < next_first_weekday %}
@@ -238,8 +238,6 @@
                                     {% endif %}
                                 {% endfor %}
                             </tr>
-                            {% if next_current_day > next_month_days %}
-                                {% break %}
                             {% endif %}
                         {% endfor %}
                     </tbody>
