@@ -54,10 +54,10 @@
                 font-size: 1.2em;
             }
             .calendar-table-wrap {
-                overflow-x: auto;
+                display: none;
             }
-            .calendar-table {
-                min-width: 640px;
+            .calendar-list {
+                display: block;
             }
             .calendar-table th,
             .calendar-table td {
@@ -139,6 +139,27 @@
         .calendar-table {
             width: 100%;
             border-collapse: collapse;
+        }
+        
+        .calendar-list {
+            display: none;
+        }
+        
+        .calendar-list-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+        
+        .calendar-list-date {
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        
+        .calendar-list-weekend {
+            background: #ffe6e6;
         }
         
         .calendar-table th {
@@ -288,6 +309,32 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
+                <div class="calendar-list">
+                    {% for week in month_info.calendar_data %}
+                        {% for day_data in week %}
+                            {% if day_data is not none %}
+                                {% set is_weekend = day_data.weekday in [5,6] %}
+                                <div class="calendar-list-item {% if is_weekend %}calendar-list-weekend{% endif %}">
+                                    <div class="calendar-list-date">{{ day_data.day }}</div>
+                                    {% if day_data.primary %}
+                                        <div class="duty-info primary-info">
+                                            <span class="label-full">Primary:</span>
+                                            <span class="label-short">P:</span>
+                                            {{ day_data.primary.name }}
+                                        </div>
+                                    {% endif %}
+                                    {% if day_data.secondary %}
+                                        <div class="duty-info secondary-info">
+                                            <span class="label-full">Secondary:</span>
+                                            <span class="label-short">S:</span>
+                                            {{ day_data.secondary.name }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
             {% endfor %}
