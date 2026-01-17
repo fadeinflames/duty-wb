@@ -322,12 +322,20 @@ def create_substitution():
             continue
         
         # Проверяем, нет ли уже замены на эту дату
+        # Если есть - обновляем её, если нет - создаем новую
         existing = DutySubstitution.query.filter_by(
             date=current_date,
             duty_type=duty_type
         ).first()
         
-        if not existing:
+        if existing:
+            # Обновляем существующую замену
+            existing.substitute_employee_id = substitute_employee_id
+            existing.original_employee_id = original_employee_id
+            existing.reason = reason
+            created_substitutions.append(existing)
+        else:
+            # Создаем новую замену
             substitution = DutySubstitution(
                 date=current_date,
                 duty_type=duty_type,
