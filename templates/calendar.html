@@ -198,6 +198,249 @@
             </div>
             {% endfor %}
         </div>
+        
+        <div class="substitution-section">
+            <h2>🔄 Замены дежурных</h2>
+            <div id="substitutions-list">
+                {% for sub in substitutions %}
+                <div class="substitution-card" data-sub-id="{{ sub.id }}">
+                    <div class="substitution-header">
+                        <div class="substitution-info">
+                            <div class="substitution-date">{{ sub.date }}</div>
+                            <div class="substitution-details">
+                                <strong>{{ sub.duty_type|title }}:</strong> 
+                                {% for emp in employees %}
+                                    {% if emp.id == sub.original_employee_id %}{{ emp.name }}{% endif %}
+                                {% endfor %}
+                                → 
+                                {% for emp in employees %}
+                                    {% if emp.id == sub.substitute_employee_id %}{{ emp.name }}{% endif %}
+                                {% endfor %}
+                                {% if sub.reason %} ({{ sub.reason }}){% endif %}
+                            </div>
+                        </div>
+                        <button class="btn-substitute btn-remove" onclick="removeSubstitution({{ sub.id }})">Удалить</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn-substitute" onclick="showSubstitutionForm()">+ Добавить замену</button>
+            </div>
+            <div id="substitution-form" class="substitution-form" style="display: none;">
+                <div class="form-group">
+                    <label>Дата начала:</label>
+                    <input type="date" id="sub-start-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Дата окончания (если одна дата - оставьте пустым):</label>
+                    <input type="date" id="sub-end-date">
+                </div>
+                <div class="form-group">
+                    <label>Тип дежурства:</label>
+                    <select id="sub-duty-type" required>
+                        <option value="primary">Primary</option>
+                        <option value="secondary">Secondary</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Кто заменяет:</label>
+                    <select id="sub-substitute" required>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Причина (необязательно):</label>
+                    <input type="text" id="sub-reason" placeholder="Например: отпуск">
+                </div>
+                <div class="form-buttons">
+                    <button class="btn-substitute" onclick="createSubstitution()">Создать</button>
+                    <button class="btn-substitute btn-cancel" onclick="hideSubstitutionForm()">Отмена</button>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <style>
+        .substitution-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .substitution-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .substitution-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #eee;
+        }
+        
+        .substitution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .substitution-info {
+            text-align: left;
+            flex: 1;
+        }
+        
+        .substitution-date {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        
+        .substitution-details {
+            font-size: 0.95em;
+            color: #666;
+        }
+        
+        .btn-substitute {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s;
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-substitute:hover {
+            background: #5568d3;
+        }
+        
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+        }
+        
+        .substitution-form {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+    </style>
+    
+    <script>
+        const employees = {{ employees|tojson }};
+        
+        function showSubstitutionForm() {
+            document.getElementById('substitution-form').style.display = 'block';
+            // Устанавливаем дату на следующий понедельник
+            const nextMonday = new Date();
+            nextMonday.setDate(nextMonday.getDate() + (7 - nextMonday.getDay() + 1) % 7 || 7);
+            document.getElementById('sub-start-date').value = nextMonday.toISOString().split('T')[0];
+            document.getElementById('sub-end-date').value = '';
+        }
+        
+        function hideSubstitutionForm() {
+            document.getElementById('substitution-form').style.display = 'none';
+        }
+        
+        function createSubstitution() {
+            const startDate = document.getElementById('sub-start-date').value;
+            const endDate = document.getElementById('sub-end-date').value || startDate;
+            const dutyType = document.getElementById('sub-duty-type').value;
+            const substitute = document.getElementById('sub-substitute').value;
+            const reason = document.getElementById('sub-reason').value;
+            
+            fetch('/api/substitutions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate,
+                    duty_type: dutyType,
+                    substitute_employee_id: substitute,
+                    reason: reason
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при создании замены');
+            });
+        }
+        
+        function removeSubstitution(subId) {
+            if (!confirm('Удалить эту замену?')) return;
+            
+            fetch(`/api/substitutions/${subId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при удалении замены');
+            });
+        }
+    </script>
 </body>
 </html>

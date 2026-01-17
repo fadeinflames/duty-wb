@@ -42,12 +42,10 @@ EMERGENCY_CONTACT = {
 # Часовой пояс (MSK - Московское время)
 TIMEZONE = pytz.timezone('Europe/Moscow')
 
-# Дата начала ротации (можно изменить)
-# Начало первой недели ротации - понедельник
-START_DATE = datetime(2024, 1, 1, tzinfo=TIMEZONE)
-# Убедимся, что это понедельник
-while START_DATE.weekday() != 0:
-    START_DATE += timedelta(days=1)
+# Дата начала ротации
+# Неделя 19-25 января должна быть: Павел Primary, Сергей Secondary (неделя 0)
+# 19 января 2026 - понедельник
+START_DATE = datetime(2026, 1, 19, tzinfo=TIMEZONE)
 
 
 # Модель БД для замен дежурных
@@ -219,6 +217,10 @@ def index():
         if sub:
             next_week_substitutions.append(sub.to_dict())
     
+    # Определяем день недели (0 = понедельник, 5 = суббота, 6 = воскресенье)
+    weekday = now.weekday()
+    is_weekend = weekday >= 5  # Суббота или воскресенье
+    
     return render_template('index.html',
                          primary=primary if primary else current_primary,
                          secondary=secondary,
@@ -228,7 +230,9 @@ def index():
                          next_week_num=next_week_num,
                          emergency_contact=EMERGENCY_CONTACT,
                          employees=EMPLOYEES,
-                         substitutions=next_week_substitutions)
+                         substitutions=next_week_substitutions,
+                         weekday=weekday,
+                         is_weekend=is_weekend)
 
 
 @app.route('/calendar')
@@ -262,10 +266,15 @@ def calendar_view():
             current_month = 1
             current_year += 1
     
+    # Получаем все замены для отображения
+    all_substitutions = DutySubstitution.query.order_by(DutySubstitution.date).all()
+    substitutions = [s.to_dict() for s in all_substitutions]
+    
     return render_template('calendar.html',
                          months_data=months_data,
                          now=now,
-                         employees=EMPLOYEES)
+                         employees=EMPLOYEES,
+                         substitutions=substitutions)
 
 
 @app.route('/api/substitutions', methods=['GET'])
@@ -287,30 +296,53 @@ def get_substitutions():
 
 @app.route('/api/substitutions', methods=['POST'])
 def create_substitution():
-    """Создать замену дежурного"""
+    """Создать замену дежурного (может быть на одну дату или диапазон)"""
     data = request.json
     
-    # Проверяем, нет ли уже замены на эту дату
-    existing = DutySubstitution.query.filter_by(
-        date=datetime.fromisoformat(data['date']).date(),
-        duty_type=data['duty_type']
-    ).first()
+    start_date = datetime.fromisoformat(data['start_date']).date()
+    end_date = datetime.fromisoformat(data.get('end_date', data['start_date'])).date()
+    duty_type = data['duty_type']
+    substitute_employee_id = data['substitute_employee_id']
+    reason = data.get('reason', '')
     
-    if existing:
-        return jsonify({'error': 'Замена на эту дату уже существует'}), 400
+    created_substitutions = []
+    current_date = start_date
     
-    substitution = DutySubstitution(
-        date=datetime.fromisoformat(data['date']).date(),
-        duty_type=data['duty_type'],
-        original_employee_id=data['original_employee_id'],
-        substitute_employee_id=data['substitute_employee_id'],
-        reason=data.get('reason', '')
-    )
+    while current_date <= end_date:
+        # Получаем оригинального дежурного для этой даты
+        date_obj = datetime.combine(current_date, datetime.min.time()).replace(tzinfo=TIMEZONE)
+        primary, secondary = get_duty_for_date(date_obj, check_substitutions=False)
+        
+        if duty_type == 'primary' and primary:
+            original_employee_id = primary['id']
+        elif duty_type == 'secondary' and secondary:
+            original_employee_id = secondary['id']
+        else:
+            current_date += timedelta(days=1)
+            continue
+        
+        # Проверяем, нет ли уже замены на эту дату
+        existing = DutySubstitution.query.filter_by(
+            date=current_date,
+            duty_type=duty_type
+        ).first()
+        
+        if not existing:
+            substitution = DutySubstitution(
+                date=current_date,
+                duty_type=duty_type,
+                original_employee_id=original_employee_id,
+                substitute_employee_id=substitute_employee_id,
+                reason=reason
+            )
+            db.session.add(substitution)
+            created_substitutions.append(substitution)
+        
+        current_date += timedelta(days=1)
     
-    db.session.add(substitution)
     db.session.commit()
     
-    return jsonify(substitution.to_dict()), 201
+    return jsonify([s.to_dict() for s in created_substitutions]), 201
 
 
 @app.route('/api/substitutions/<int:sub_id>', methods=['DELETE'])
