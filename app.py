@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 from datetime import datetime, timedelta
 import pytz
-from calendar import monthrange
+import calendar as cal_module
 
 app = Flask(__name__)
 
@@ -38,13 +38,21 @@ EMERGENCY_CONTACT = {
 TIMEZONE = pytz.timezone('Europe/Moscow')
 
 # Дата начала ротации (можно изменить)
-# Начало первой недели ротации
+# Начало первой недели ротации - понедельник
 START_DATE = datetime(2024, 1, 1, tzinfo=TIMEZONE)
+# Убедимся, что это понедельник
+while START_DATE.weekday() != 0:
+    START_DATE += timedelta(days=1)
 
 
 def get_week_number(date):
     """Вычисляет номер недели с начала ротации"""
-    delta = date - START_DATE
+    # Находим понедельник этой недели
+    days_since_monday = date.weekday()
+    monday = date - timedelta(days=days_since_monday)
+    
+    # Вычисляем разницу в неделях от START_DATE
+    delta = monday - START_DATE
     return delta.days // 7
 
 
@@ -63,13 +71,6 @@ def get_duty_for_week(week_num):
     primary_idx = week_num % len(EMPLOYEES)
     
     # Secondary ротация по паттерну:
-    # Неделя % 6 == 0: Secondary = 1 (Сергей)
-    # Неделя % 6 == 1: Secondary = 2 (Максим)
-    # Неделя % 6 == 2: Secondary = 0 (Павел)
-    # Неделя % 6 == 3: Secondary = 2 (Максим)
-    # Неделя % 6 == 4: Secondary = 0 (Павел)
-    # Неделя % 6 == 5: Secondary = 1 (Сергей)
-    
     pattern = week_num % 6
     if pattern == 0:
         secondary_idx = 1  # Сергей
@@ -102,34 +103,41 @@ def get_current_duty():
         return primary, secondary
 
 
-def get_calendar_data(year, month):
-    """Генерирует данные календаря для указанного месяца"""
-    last_day_num = monthrange(year, month)[1]
+def get_calendar_month(year, month):
+    """Генерирует календарь для месяца с данными о дежурных"""
+    # Используем встроенный модуль calendar
+    cal = cal_module.monthcalendar(year, month)
     
-    calendar = []
+    calendar_data = []
     
-    for day in range(1, last_day_num + 1):
-        date = datetime(year, month, day, tzinfo=TIMEZONE)
-        weekday = date.weekday()
-        
-        # Определяем неделю для этого дня
-        day_week = get_week_number(date)
-        
-        # Получаем дежурных для этой недели
-        primary, secondary = get_duty_for_week(day_week)
-        
-        # На воскресенье только Secondary
-        if weekday == 6:  # Sunday
-            primary = None
-        
-        calendar.append({
-            'day': day,
-            'weekday': weekday,
-            'primary': primary,
-            'secondary': secondary
-        })
+    for week in cal:
+        week_data = []
+        for day in week:
+            if day == 0:
+                # Пустой день (из другого месяца)
+                week_data.append(None)
+            else:
+                date = datetime(year, month, day, tzinfo=TIMEZONE)
+                weekday = date.weekday()
+                week_num = get_week_number(date)
+                
+                # Получаем дежурных для этой недели
+                primary, secondary = get_duty_for_week(week_num)
+                
+                # На воскресенье только Secondary
+                if weekday == 6:  # Sunday
+                    primary = None
+                
+                week_data.append({
+                    'day': day,
+                    'weekday': weekday,
+                    'primary': primary,
+                    'secondary': secondary,
+                    'date': date
+                })
+        calendar_data.append(week_data)
     
-    return calendar
+    return calendar_data
 
 
 @app.route('/')
@@ -156,14 +164,14 @@ def index():
 
 
 @app.route('/calendar')
-def calendar():
+def calendar_view():
     """Страница с календарем ротации"""
     now = datetime.now(TIMEZONE)
     year = now.year
     month = now.month
     
     # Получаем данные для текущего месяца
-    calendar_data = get_calendar_data(year, month)
+    calendar_data = get_calendar_month(year, month)
     
     # Также для следующего месяца
     if month == 12:
@@ -173,13 +181,19 @@ def calendar():
         next_year = year
         next_month = month + 1
     
-    next_calendar_data = get_calendar_data(next_year, next_month)
+    next_calendar_data = get_calendar_month(next_year, next_month)
+    
+    # Названия месяцев
+    month_names = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
     
     return render_template('calendar.html',
                          year=year,
                          month=month,
+                         month_name=month_names[month],
                          next_year=next_year,
                          next_month=next_month,
+                         next_month_name=month_names[next_month],
                          calendar_data=calendar_data,
                          next_calendar_data=next_calendar_data,
                          now=now)
