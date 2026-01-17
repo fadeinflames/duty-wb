@@ -158,47 +158,6 @@
             <a href="/" class="nav-link">🏠 Главная</a>
         </div>
         
-        <div class="calendar-container">
-            {% for month_info in months_data %}
-            <div class="calendar">
-                <div class="calendar-title">{{ month_info.month_name }} {{ month_info.year }}</div>
-                <table class="calendar-table">
-                    <thead>
-                        <tr>
-                            <th>Пн</th>
-                            <th>Вт</th>
-                            <th>Ср</th>
-                            <th>Чт</th>
-                            <th>Пт</th>
-                            <th>Сб</th>
-                            <th>Вс</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for week in month_info.calendar_data %}
-                        <tr>
-                            {% for day_data in week %}
-                                {% if day_data is none %}
-                                    <td class="empty-day"></td>
-                                {% else %}
-                                    {% set is_today = (day_data.day == now.day and month_info.month == now.month and month_info.year == now.year) %}
-                                    <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if is_today %}today{% endif %}">
-                                        <div class="day-number">{{ day_data.day }}</div>
-                                        {% if day_data.primary %}
-                                            <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
-                                        {% endif %}
-                                        <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
-                                    </td>
-                                {% endif %}
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endfor %}
-        </div>
-        
         <div class="substitution-section">
             <h2>🔄 Замены дежурных</h2>
             <div id="substitutions-list">
@@ -261,13 +220,55 @@
                 </div>
             </div>
         </div>
+        
+        <div class="calendar-container">
+            {% for month_info in months_data %}
+            <div class="calendar">
+                <div class="calendar-title">{{ month_info.month_name }} {{ month_info.year }}</div>
+                <table class="calendar-table">
+                    <thead>
+                        <tr>
+                            <th>Пн</th>
+                            <th>Вт</th>
+                            <th>Ср</th>
+                            <th>Чт</th>
+                            <th>Пт</th>
+                            <th>Сб</th>
+                            <th>Вс</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for week in month_info.calendar_data %}
+                        <tr>
+                            {% for day_data in week %}
+                                {% if day_data is none %}
+                                    <td class="empty-day"></td>
+                                {% else %}
+                                    {% set is_today = (day_data.day == now.day and month_info.month == now.month and month_info.year == now.year) %}
+                                    <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if is_today %}today{% endif %}">
+                                        <div class="day-number">{{ day_data.day }}</div>
+                                        {% if day_data.primary %}
+                                            <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
+                                        {% endif %}
+                                        <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                    </td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     
     <style>
         .substitution-section {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 2px solid #eee;
+            margin-top: 30px;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #eee;
         }
         
         .substitution-section h2 {

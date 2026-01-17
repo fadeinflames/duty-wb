@@ -28,7 +28,7 @@ EMPLOYEES = [
         'id': 'maxim',
         'name': 'Максим Огурцов',
         'telegram': '@username',  # Замените на реальный Telegram
-        'bend': '@ogurcov.maksim5'  # Замените на реальный Bend
+        'bend': '@ogurcov.maksim5cal'  # Замените на реальный Bend
     }
 ]
 
