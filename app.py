@@ -137,7 +137,11 @@ def get_duty_for_date(date, check_substitutions=True):
             substitute = next((e for e in EMPLOYEES if e['id'] == substitution.substitute_employee_id), None)
             if substitute:
                 if substitution.duty_type == 'primary':
-                    week_primary = substitute
+                    # Для выходных: замена Primary применяется к тому, кто будет показан как Primary
+                    if weekday == 6:  # Воскресенье - Primary = week_secondary
+                        week_secondary = substitute
+                    else:  # Суббота и будние дни - Primary = week_primary
+                        week_primary = substitute
                 elif substitution.duty_type == 'secondary':
                     week_secondary = substitute
     
@@ -309,12 +313,28 @@ def create_substitution():
     while current_date <= end_date:
         # Получаем оригинального дежурного для этой даты
         date_obj = datetime.combine(current_date, datetime.min.time()).replace(tzinfo=TIMEZONE)
-        primary, secondary = get_duty_for_date(date_obj, check_substitutions=False)
+        weekday = date_obj.weekday()
         
-        if duty_type == 'primary' and primary:
-            original_employee_id = primary['id']
-        elif duty_type == 'secondary' and secondary:
-            original_employee_id = secondary['id']
+        # Для определения оригинального дежурного используем базовую ротацию без замен
+        week_num = get_week_number(date_obj)
+        week_primary, week_secondary = get_duty_for_week(week_num)
+        
+        # Определяем, кто будет показан как Primary/Secondary для этой даты
+        if weekday == 5:  # Суббота - Primary = week_primary
+            primary_for_day = week_primary
+            secondary_for_day = None
+        elif weekday == 6:  # Воскресенье - Primary = week_secondary
+            primary_for_day = week_secondary
+            secondary_for_day = None
+        else:  # Будние дни
+            primary_for_day = week_primary
+            secondary_for_day = week_secondary
+        
+        # Определяем оригинального дежурного в зависимости от типа замены
+        if duty_type == 'primary' and primary_for_day:
+            original_employee_id = primary_for_day['id']
+        elif duty_type == 'secondary' and secondary_for_day:
+            original_employee_id = secondary_for_day['id']
         else:
             current_date += timedelta(days=1)
             continue
