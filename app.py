@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 import pytz
 import calendar as cal_module
@@ -31,6 +31,7 @@ EMPLOYEES = [
         'band': '@ogurcov.maksim5cal'  # Замените на реальный Band
     }
 ]
+EMPLOYEE_BY_ID = {e['id']: e for e in EMPLOYEES}
 
 # Экстренный контакт (эскалация) - лид команды
 EMERGENCY_CONTACT = {
@@ -109,7 +110,7 @@ def get_duty_for_week(week_num):
     return EMPLOYEES[primary_idx], EMPLOYEES[secondary_idx]
 
 
-def get_duty_for_date(date, check_substitutions=True):
+def get_duty_for_date(date, check_substitutions=True, substitutions_map=None):
     """
     Определяет дежурных для конкретной даты с учетом замен
     Суббота - Primary = недельный Primary
@@ -125,14 +126,21 @@ def get_duty_for_date(date, check_substitutions=True):
     # Проверяем замены в БД
     if check_substitutions:
         date_only = date.date()
-        substitution = DutySubstitution.query.filter(
-            and_(
-                DutySubstitution.date == date_only,
-                DutySubstitution.duty_type.in_(['primary', 'secondary'])
-            )
-        ).first()
+        if substitutions_map is not None:
+            day_subs = substitutions_map.get(date_only, {})
+            substitutions = list(day_subs.values())
+        else:
+            substitutions = DutySubstitution.query.filter(
+                and_(
+                    DutySubstitution.date == date_only,
+                    DutySubstitution.duty_type.in_(['primary', 'secondary'])
+                )
+            ).all()
         
-        if substitution:
+        for substitution in substitutions:
+            # На выходных Secondary не отображается, пропускаем такие замены
+            if weekday in (5, 6) and substitution.duty_type == 'secondary':
+                continue
             # Находим заменяющего
             substitute = next((e for e in EMPLOYEES if e['id'] == substitution.substitute_employee_id), None)
             if substitute:
@@ -163,7 +171,19 @@ def get_current_duty():
     return get_duty_for_date(now)
 
 
-def get_calendar_month(year, month):
+def get_substitution_map(start_date, end_date):
+    """Готовит словарь замен по датам для быстрых вычислений"""
+    substitutions = DutySubstitution.query.filter(
+        DutySubstitution.date >= start_date,
+        DutySubstitution.date <= end_date
+    ).all()
+    substitutions_map = {}
+    for substitution in substitutions:
+        substitutions_map.setdefault(substitution.date, {})[substitution.duty_type] = substitution
+    return substitutions_map
+
+
+def get_calendar_month(year, month, substitutions_map=None):
     """Генерирует календарь для месяца с данными о дежурных"""
     # Используем встроенный модуль calendar
     cal = cal_module.monthcalendar(year, month)
@@ -181,14 +201,26 @@ def get_calendar_month(year, month):
                 weekday = date.weekday()
                 
                 # Получаем дежурных для этой даты
-                primary, secondary = get_duty_for_date(date)
+                primary, secondary = get_duty_for_date(date, substitutions_map=substitutions_map)
+                date_only = date.date()
+                day_subs = substitutions_map.get(date_only, {}) if substitutions_map else {}
+                primary_sub = day_subs.get('primary')
+                secondary_sub = day_subs.get('secondary')
                 
                 week_data.append({
                     'day': day,
                     'weekday': weekday,
                     'primary': primary,
                     'secondary': secondary,
-                    'date': date
+                    'date': date,
+                    'primary_sub': {
+                        'from': EMPLOYEE_BY_ID.get(primary_sub.original_employee_id) if primary_sub else None,
+                        'to': EMPLOYEE_BY_ID.get(primary_sub.substitute_employee_id) if primary_sub else None,
+                    } if primary_sub else None,
+                    'secondary_sub': {
+                        'from': EMPLOYEE_BY_ID.get(secondary_sub.original_employee_id) if secondary_sub else None,
+                        'to': EMPLOYEE_BY_ID.get(secondary_sub.substitute_employee_id) if secondary_sub else None,
+                    } if secondary_sub else None
                 })
         calendar_data.append(week_data)
     
@@ -254,7 +286,11 @@ def calendar_view():
     current_month = month
     
     for i in range(6):
-        calendar_data = get_calendar_month(current_year, current_month)
+        month_start = datetime(current_year, current_month, 1).date()
+        last_day = cal_module.monthrange(current_year, current_month)[1]
+        month_end = datetime(current_year, current_month, last_day).date()
+        substitutions_map = get_substitution_map(month_start, month_end)
+        calendar_data = get_calendar_month(current_year, current_month, substitutions_map=substitutions_map)
         months_data.append({
             'year': current_year,
             'month': current_month,
@@ -268,9 +304,38 @@ def calendar_view():
             current_month = 1
             current_year += 1
     
-    # Получаем все замены для отображения
-    all_substitutions = DutySubstitution.query.order_by(DutySubstitution.date).all()
-    substitutions = [s.to_dict() for s in all_substitutions]
+    # Получаем все замены для отображения и помечаем диапазоны
+    all_substitutions = DutySubstitution.query.order_by(
+        DutySubstitution.date,
+        DutySubstitution.duty_type,
+        DutySubstitution.original_employee_id,
+        DutySubstitution.substitute_employee_id
+    ).all()
+    substitutions = []
+    substitutions_by_key = {}
+    for s in all_substitutions:
+        key = (
+            s.duty_type,
+            s.original_employee_id,
+            s.substitute_employee_id,
+            s.reason or ''
+        )
+        substitutions_by_key.setdefault(key, []).append(s)
+
+    # Для каждой замены определяем, является ли она частью диапазона
+    for s in all_substitutions:
+        key = (
+            s.duty_type,
+            s.original_employee_id,
+            s.substitute_employee_id,
+            s.reason or ''
+        )
+        dates = [x.date for x in substitutions_by_key[key]]
+        dates_set = set(dates)
+        is_range = (s.date - timedelta(days=1)) in dates_set or (s.date + timedelta(days=1)) in dates_set
+        s_dict = s.to_dict()
+        s_dict['range_type'] = 'range' if is_range else 'single'
+        substitutions.append(s_dict)
     
     return render_template('calendar.html',
                          months_data=months_data,
@@ -308,12 +373,17 @@ def create_substitution():
     reason = data.get('reason', '')
     
     created_substitutions = []
+    skipped_dates = []
     current_date = start_date
     
     while current_date <= end_date:
         # Получаем оригинального дежурного для этой даты
         date_obj = datetime.combine(current_date, datetime.min.time()).replace(tzinfo=TIMEZONE)
         weekday = date_obj.weekday()
+        if duty_type == 'secondary' and weekday in (5, 6):
+            skipped_dates.append(current_date.isoformat())
+            current_date += timedelta(days=1)
+            continue
         
         # Для определения оригинального дежурного используем базовую ротацию без замен
         week_num = get_week_number(date_obj)
@@ -368,7 +438,16 @@ def create_substitution():
     
     db.session.commit()
     
-    return jsonify([s.to_dict() for s in created_substitutions]), 201
+    if not created_substitutions:
+        return jsonify({
+            'error': 'Нет подходящих дат для замены выбранного типа дежурства',
+            'skipped_dates': skipped_dates
+        }), 400
+    
+    return jsonify({
+        'created': [s.to_dict() for s in created_substitutions],
+        'skipped_dates': skipped_dates
+    }), 201
 
 
 @app.route('/api/substitutions/<int:sub_id>', methods=['DELETE'])

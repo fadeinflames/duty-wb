@@ -133,6 +133,26 @@
             font-weight: bold;
         }
         
+        .substitution-badge {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.7em;
+            background: #f1f3f5;
+            color: #555;
+        }
+        
+        .range-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            background: #e7f3ff;
+            color: #0b4f8a;
+        }
+        
         .empty-day {
             background: #f5f5f5;
         }
@@ -144,6 +164,11 @@
         
         .sunday {
             background: #ffe6e6;
+        }
+        
+        .has-substitution {
+            outline: 2px solid #8e7bff;
+            outline-offset: -2px;
         }
         
         .other-month {
@@ -165,7 +190,13 @@
                 <div class="substitution-card" data-sub-id="{{ sub.id }}">
                     <div class="substitution-header">
                         <div class="substitution-info">
-                            <div class="substitution-date">{{ sub.date }}</div>
+                            <div class="substitution-date">{{ sub.date }}
+                                {% if sub.range_type == 'range' %}
+                                    <span class="range-badge">диапазон</span>
+                                {% else %}
+                                    <span class="range-badge">одна дата</span>
+                                {% endif %}
+                            </div>
                             <div class="substitution-details">
                                 <strong>{{ sub.duty_type|title }}:</strong> 
                                 {% for emp in employees %}
@@ -186,6 +217,10 @@
             <div style="margin-top: 20px;">
                 <button class="btn-substitute" onclick="showSubstitutionForm()">+ Добавить замену</button>
             </div>
+            <div class="substitution-note">
+                Примечание: в выходные отображается только Primary. Замены Secondary на субботу/воскресенье будут пропущены.
+            </div>
+            <div id="substitution-message" class="substitution-message" style="display: none;"></div>
             <div id="substitution-form" class="substitution-form" style="display: none;">
                 <div class="form-group">
                     <label>Дата начала:</label>
@@ -245,14 +280,24 @@
                                     <td class="empty-day"></td>
                                 {% else %}
                                     {% set is_today = (day_data.day == now.day and month_info.month == now.month and month_info.year == now.year) %}
-                                    <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if is_today %}today{% endif %}">
+                                    <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if is_today %}today{% endif %} {% if day_data.primary_sub or day_data.secondary_sub %}has-substitution{% endif %}">
                                         <div class="day-number">{{ day_data.day }}</div>
-                                        {% if day_data.primary %}
-                                            <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
-                                        {% endif %}
-                                        {% if day_data.secondary %}
-                                            <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
-                                        {% endif %}
+                                    {% if day_data.primary %}
+                                        <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
+                                    {% endif %}
+                                    {% if day_data.secondary %}
+                                        <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                    {% endif %}
+                                    {% if day_data.primary_sub %}
+                                        <div class="substitution-badge">
+                                            Primary замена: {{ day_data.primary_sub.from.name }} → {{ day_data.primary_sub.to.name }}
+                                        </div>
+                                    {% endif %}
+                                    {% if day_data.secondary_sub %}
+                                        <div class="substitution-badge">
+                                            Secondary замена: {{ day_data.secondary_sub.from.name }} → {{ day_data.secondary_sub.to.name }}
+                                        </div>
+                                    {% endif %}
                                     </td>
                                 {% endif %}
                             {% endfor %}
@@ -369,6 +414,39 @@
             margin-top: 15px;
         }
         
+        .substitution-note {
+            margin-top: 12px;
+            color: #666;
+            font-size: 0.9em;
+            text-align: left;
+        }
+        
+        .substitution-message {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            text-align: left;
+        }
+        
+        .substitution-message.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #7a5d00;
+        }
+        
+        .substitution-message.success {
+            background: #e7f3ff;
+            border: 1px solid #b6d9ff;
+            color: #0b4f8a;
+        }
+        
+        .substitution-message.error {
+            background: #fdecea;
+            border: 1px solid #f5c6cb;
+            color: #7a1c1c;
+        }
+        
         .btn-cancel {
             background: #6c757d;
             color: white;
@@ -389,10 +467,50 @@
             nextMonday.setDate(nextMonday.getDate() + (7 - nextMonday.getDay() + 1) % 7 || 7);
             document.getElementById('sub-start-date').value = nextMonday.toISOString().split('T')[0];
             document.getElementById('sub-end-date').value = '';
+            updateFormWarnings();
         }
         
         function hideSubstitutionForm() {
             document.getElementById('substitution-form').style.display = 'none';
+        }
+        
+        function isWeekend(date) {
+            const day = date.getDay();
+            return day === 0 || day === 6;
+        }
+        
+        function rangeHasWeekend(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const current = new Date(start);
+            while (current <= end) {
+                if (isWeekend(current)) return true;
+                current.setDate(current.getDate() + 1);
+            }
+            return false;
+        }
+        
+        function updateFormWarnings() {
+            const startDate = document.getElementById('sub-start-date').value;
+            const endDate = document.getElementById('sub-end-date').value || startDate;
+            const dutyType = document.getElementById('sub-duty-type').value;
+            const message = document.getElementById('substitution-message');
+            const createBtn = document.querySelector('#substitution-form .form-buttons .btn-substitute');
+            
+            if (!startDate) return;
+            
+            if (dutyType === 'secondary' && rangeHasWeekend(startDate, endDate)) {
+                showMessage('warning', 'Secondary в выходные не отображается. Выберите Primary или уберите выходные из диапазона.');
+                createBtn.disabled = true;
+                createBtn.style.opacity = '0.6';
+                return;
+            }
+            
+            if (message.classList.contains('warning')) {
+                message.style.display = 'none';
+            }
+            createBtn.disabled = false;
+            createBtn.style.opacity = '1';
         }
         
         function createSubstitution() {
@@ -418,14 +536,21 @@
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    alert(data.error);
-                } else {
-                    location.reload();
+                    showMessage('error', buildMessage(data.error, data.skipped_dates));
+                    return;
                 }
+                
+                const createdCount = (data.created || []).length;
+                const message = buildMessage(`Создано замен: ${createdCount}.`, data.skipped_dates);
+                showMessage('success', message);
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 800);
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ошибка при создании замены');
+                showMessage('error', 'Ошибка при создании замены.');
             });
         }
         
@@ -441,9 +566,27 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ошибка при удалении замены');
+                showMessage('error', 'Ошибка при удалении замены.');
             });
         }
+        
+        function showMessage(type, text) {
+            const el = document.getElementById('substitution-message');
+            el.className = `substitution-message ${type}`;
+            el.textContent = text;
+            el.style.display = 'block';
+        }
+        
+        function buildMessage(baseText, skippedDates) {
+            if (!skippedDates || skippedDates.length === 0) {
+                return baseText;
+            }
+            return `${baseText} Пропущены даты: ${skippedDates.join(', ')}.`;
+        }
+        
+        document.getElementById('sub-start-date').addEventListener('change', updateFormWarnings);
+        document.getElementById('sub-end-date').addEventListener('change', updateFormWarnings);
+        document.getElementById('sub-duty-type').addEventListener('change', updateFormWarnings);
     </script>
 </body>
 </html>
