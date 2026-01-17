@@ -44,18 +44,40 @@
                 margin: 6px 4px;
                 padding: 8px 12px;
                 font-size: 0.9em;
+                display: inline-block;
             }
             .calendar-container {
                 grid-template-columns: 1fr;
                 gap: 20px;
             }
+            .calendar-title {
+                font-size: 1.2em;
+            }
+            .calendar-table-wrap {
+                overflow-x: auto;
+            }
+            .calendar-table {
+                min-width: 640px;
+            }
             .calendar-table th,
             .calendar-table td {
                 padding: 6px;
-                font-size: 0.8em;
+                font-size: 0.78em;
             }
             .calendar-table td {
-                height: 80px;
+                height: 70px;
+            }
+            .day-number {
+                font-size: 0.95em;
+            }
+            .duty-info {
+                font-size: 0.7em;
+            }
+            .label-full {
+                display: none;
+            }
+            .label-short {
+                display: inline;
             }
         }
         
@@ -143,6 +165,10 @@
             font-size: 1.1em;
         }
         
+        .label-short {
+            display: none;
+        }
+        
         .duty-info {
             font-size: 0.75em;
             margin-top: 3px;
@@ -218,6 +244,7 @@
             {% for month_info in months_data %}
             <div class="calendar">
                 <div class="calendar-title">{{ month_info.month_name }} {{ month_info.year }}</div>
+                <div class="calendar-table-wrap">
                 <table class="calendar-table">
                     <thead>
                         <tr>
@@ -241,10 +268,18 @@
                                     <td class="{% if day_data.weekday == 6 %}sunday{% endif %} {% if day_data.weekday == 5 %}saturday{% endif %} {% if is_today %}today{% endif %} {% if day_data.primary_sub or day_data.secondary_sub %}has-substitution{% endif %}">
                                         <div class="day-number">{{ day_data.day }}</div>
                                     {% if day_data.primary %}
-                                        <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
+                                        <div class="duty-info primary-info">
+                                            <span class="label-full">Primary:</span>
+                                            <span class="label-short">P:</span>
+                                            {{ day_data.primary.name }}
+                                        </div>
                                     {% endif %}
                                     {% if day_data.secondary %}
-                                        <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                        <div class="duty-info secondary-info">
+                                            <span class="label-full">Secondary:</span>
+                                            <span class="label-short">S:</span>
+                                            {{ day_data.secondary.name }}
+                                        </div>
                                     {% endif %}
                                     </td>
                                 {% endif %}
@@ -253,6 +288,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div>
             {% endfor %}
         </div>
