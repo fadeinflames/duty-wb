@@ -250,7 +250,9 @@
                                         {% if day_data.primary %}
                                             <div class="duty-info primary-info">Primary: {{ day_data.primary.name }}</div>
                                         {% endif %}
-                                        <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                        {% if day_data.secondary %}
+                                            <div class="duty-info secondary-info">Secondary: {{ day_data.secondary.name }}</div>
+                                        {% endif %}
                                     </td>
                                 {% endif %}
                             {% endfor %}

@@ -259,19 +259,19 @@
                     </div>
                     {% endif %}
                 {% elif weekday == 6 %}
-                    {# Воскресенье - только Secondary #}
-                    {% if secondary %}
-                    <div class="duty-card secondary">
-                        <div class="duty-type">Secondary</div>
-                        <div class="duty-name">{{ secondary.name }}</div>
+                    {# Воскресенье - Primary = тот кто был Secondary всю неделю #}
+                    {% if primary %}
+                    <div class="duty-card">
+                        <div class="duty-type">Primary</div>
+                        <div class="duty-name">{{ primary.name }}</div>
                         <div class="duty-contacts">
                             <div class="duty-contact-item">
                                 <span class="duty-contact-label">Telegram:</span>
-                                <span class="duty-contact-value">{{ secondary.telegram }}</span>
+                                <span class="duty-contact-value">{{ primary.telegram }}</span>
                             </div>
                             <div class="duty-contact-item">
                                 <span class="duty-contact-label">Bend:</span>
-                                <span class="duty-contact-value">{{ secondary.bend }}</span>
+                                <span class="duty-contact-value">{{ primary.bend }}</span>
                             </div>
                         </div>
                     </div>

@@ -112,14 +112,15 @@ def get_duty_for_week(week_num):
 def get_duty_for_date(date, check_substitutions=True):
     """
     Определяет дежурных для конкретной даты с учетом замен
-    Суббота - только Primary
-    Воскресенье - только Secondary
+    Суббота - Primary = недельный Primary
+    Воскресенье - Primary = недельный Secondary (тот кто был Secondary всю неделю)
+    В выходные всегда показывается только Primary
     """
     weekday = date.weekday()
     week_num = get_week_number(date)
     
     # Получаем базовых дежурных для недели
-    primary, secondary = get_duty_for_week(week_num)
+    week_primary, week_secondary = get_duty_for_week(week_num)
     
     # Проверяем замены в БД
     if check_substitutions:
@@ -132,27 +133,24 @@ def get_duty_for_date(date, check_substitutions=True):
         ).first()
         
         if substitution:
-            if substitution.duty_type == 'primary':
-                # Находим заменяющего
-                substitute = next((e for e in EMPLOYEES if e['id'] == substitution.substitute_employee_id), None)
-                if substitute:
-                    primary = substitute
-            elif substitution.duty_type == 'secondary':
-                # Находим заменяющего
-                substitute = next((e for e in EMPLOYEES if e['id'] == substitution.substitute_employee_id), None)
-                if substitute:
-                    secondary = substitute
+            # Находим заменяющего
+            substitute = next((e for e in EMPLOYEES if e['id'] == substitution.substitute_employee_id), None)
+            if substitute:
+                if substitution.duty_type == 'primary':
+                    week_primary = substitute
+                elif substitution.duty_type == 'secondary':
+                    week_secondary = substitute
     
-    # Суббота (5) - только Primary
+    # Суббота (5) - Primary = недельный Primary
     if weekday == 5:
-        return primary, None
+        return week_primary, None
     
-    # Воскресенье (6) - только Secondary
+    # Воскресенье (6) - Primary = недельный Secondary (тот кто был Secondary всю неделю)
     if weekday == 6:
-        return None, secondary
+        return week_secondary, None
     
-    # Остальные дни - оба дежурных
-    return primary, secondary
+    # Остальные дни (понедельник-пятница) - оба дежурных
+    return week_primary, week_secondary
 
 
 def get_current_duty():
