@@ -249,14 +249,24 @@
                         <div class="duty-type">Primary</div>
                         <div class="duty-name">{{ primary.name }}</div>
                         <div class="duty-contacts">
-                            <div class="duty-contact-item">
-                                <span class="duty-contact-label">Telegram:</span>
-                                <span class="duty-contact-value">{{ primary.telegram }}</span>
-                            </div>
-                            <div class="duty-contact-item">
-                                <span class="duty-contact-label">Band:</span>
-                                <span class="duty-contact-value">{{ primary.band }}</span>
-                            </div>
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Telegram:</span>
+                            <span class="duty-contact-value">
+                                <a href="https://t.me/{{ primary.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">
+                                    {{ primary.telegram }}
+                                </a>
+                            </span>
+                        </div>
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Band:</span>
+                            <span class="duty-contact-value">
+                                {% if primary.band_url %}
+                                    <a href="{{ primary.band_url }}" target="_blank" rel="noopener noreferrer">{{ primary.band }}</a>
+                                {% else %}
+                                    {{ primary.band }}
+                                {% endif %}
+                            </span>
+                        </div>
                         </div>
                     </div>
                     {% endif %}
@@ -269,11 +279,21 @@
                         <div class="duty-contacts">
                             <div class="duty-contact-item">
                                 <span class="duty-contact-label">Telegram:</span>
-                                <span class="duty-contact-value">{{ primary.telegram }}</span>
+                                <span class="duty-contact-value">
+                                    <a href="https://t.me/{{ primary.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">
+                                        {{ primary.telegram }}
+                                    </a>
+                                </span>
                             </div>
                             <div class="duty-contact-item">
                                 <span class="duty-contact-label">Band:</span>
-                                <span class="duty-contact-value">{{ primary.band }}</span>
+                                <span class="duty-contact-value">
+                                    {% if primary.band_url %}
+                                        <a href="{{ primary.band_url }}" target="_blank" rel="noopener noreferrer">{{ primary.band }}</a>
+                                    {% else %}
+                                        {{ primary.band }}
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -287,11 +307,21 @@
                         <div class="duty-contacts">
                             <div class="duty-contact-item">
                                 <span class="duty-contact-label">Telegram:</span>
-                                <span class="duty-contact-value">{{ primary.telegram }}</span>
+                                <span class="duty-contact-value">
+                                    <a href="https://t.me/{{ primary.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">
+                                        {{ primary.telegram }}
+                                    </a>
+                                </span>
                             </div>
                             <div class="duty-contact-item">
                                 <span class="duty-contact-label">Band:</span>
-                                <span class="duty-contact-value">{{ primary.band }}</span>
+                                <span class="duty-contact-value">
+                                    {% if primary.band_url %}
+                                        <a href="{{ primary.band_url }}" target="_blank" rel="noopener noreferrer">{{ primary.band }}</a>
+                                    {% else %}
+                                        {{ primary.band }}
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -301,14 +331,24 @@
                         <div class="duty-type">Secondary</div>
                         <div class="duty-name">{{ secondary.name }}</div>
                         <div class="duty-contacts">
-                            <div class="duty-contact-item">
-                                <span class="duty-contact-label">Telegram:</span>
-                                <span class="duty-contact-value">{{ secondary.telegram }}</span>
-                            </div>
-                            <div class="duty-contact-item">
-                                <span class="duty-contact-label">Band:</span>
-                                <span class="duty-contact-value">{{ secondary.band }}</span>
-                            </div>
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Telegram:</span>
+                            <span class="duty-contact-value">
+                                <a href="https://t.me/{{ secondary.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">
+                                    {{ secondary.telegram }}
+                                </a>
+                            </span>
+                        </div>
+                        <div class="duty-contact-item">
+                            <span class="duty-contact-label">Band:</span>
+                            <span class="duty-contact-value">
+                                {% if secondary.band_url %}
+                                    <a href="{{ secondary.band_url }}" target="_blank" rel="noopener noreferrer">{{ secondary.band }}</a>
+                                {% else %}
+                                    {{ secondary.band }}
+                                {% endif %}
+                            </span>
+                        </div>
                         </div>
                     </div>
                     {% endif %}
@@ -344,11 +384,21 @@
             <div class="escalation-contacts">
                 <div class="escalation-contact-item">
                     <span class="escalation-contact-label">Telegram:</span>
-                    <span class="escalation-contact-value">{{ emergency_contact.telegram }}</span>
+                    <span class="escalation-contact-value">
+                        <a href="https://t.me/{{ emergency_contact.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">
+                            {{ emergency_contact.telegram }}
+                        </a>
+                    </span>
                 </div>
                 <div class="escalation-contact-item">
                     <span class="escalation-contact-label">Band:</span>
-                    <span class="escalation-contact-value">{{ emergency_contact.band }}</span>
+                    <span class="escalation-contact-value">
+                        {% if emergency_contact.band_url %}
+                            <a href="{{ emergency_contact.band_url }}" target="_blank" rel="noopener noreferrer">{{ emergency_contact.band }}</a>
+                        {% else %}
+                            {{ emergency_contact.band }}
+                        {% endif %}
+                    </span>
                 </div>
             </div>
         </div>

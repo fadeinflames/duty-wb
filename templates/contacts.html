@@ -184,6 +184,10 @@
                     <label>Band:</label>
                     <input type="text" id="emp-band-{{ emp.id }}" value="{{ emp.band }}">
                 </div>
+                <div class="form-group">
+                    <label>Band URL:</label>
+                    <input type="text" id="emp-band-url-{{ emp.id }}" value="{{ emp.band_url }}">
+                </div>
                 <button class="btn" onclick="saveEmployee('{{ emp.id }}')">Сохранить</button>
             </div>
             {% endfor %}
@@ -197,6 +201,7 @@
             const name = document.getElementById(`emp-name-${employeeId}`).value.trim();
             const telegram = document.getElementById(`emp-telegram-${employeeId}`).value.trim();
             const band = document.getElementById(`emp-band-${employeeId}`).value.trim();
+            const bandUrl = document.getElementById(`emp-band-url-${employeeId}`).value.trim();
 
             fetch(`/api/employees/${employeeId}`, {
                 method: 'PUT',
@@ -206,7 +211,8 @@
                 body: JSON.stringify({
                     name: name,
                     telegram: telegram,
-                    band: band
+                    band: band,
+                    band_url: bandUrl
                 })
             })
             .then(response => response.json())

@@ -21,28 +21,32 @@ EMPLOYEE_DEFAULTS = [
     {
         'id': 'pavel',
         'name': 'Павел Аминов',
-        'telegram': '@nytera',  # Замените на реальный Telegram
-        'band': '@aminov.pavel3'  # Замените на реальный Band
+        'telegram': '@nytera', 
+        'band': '@aminov.pavel3',
+        'band_url': 'https://band.wb.ru/ads/pl/1w6afzks6bba3kiwpjxz4be5ua'
     },
     {
         'id': 'sergey',
         'name': 'Сергей Петухов',
-        'telegram': '@Fornization',  # Замените на реальный Telegram
-        'band': '@petuhov.sergey15'  # Замените на реальный Band
+        'telegram': '@Fornization', 
+        'band': '@petuhov.sergey15',
+        'band_url': 'https://band.wb.ru/ads/pl/ju6ocs9m4fru7xobhe4au7ytde'
     },
     {
         'id': 'maxim',
         'name': 'Максим Огурцов',
-        'telegram': '@username',  # Замените на реальный Telegram
-        'band': '@ogurcov.maksim5cal'  # Замените на реальный Band
+        'telegram': '@miogurtsov', 
+        'band': '@ogurcov.maksim5',
+        'band_url': 'https://band.wb.ru/ads/pl/dh55z54kxbrxzqg6qn8zr7u6wh'
     }
 ]
 
 # Экстренный контакт (эскалация) - лид команды
 EMERGENCY_CONTACT = {
     'name': 'Максим Гусев',
-    'telegram': '@fadeinflames',  # Замените на реальный Telegram
-    'band': '@username'  # Замените на реальный Band (Mattermost)
+    'telegram': '@fadeinflames', 
+    'band': '@gusev.maksim79',
+    'band_url': 'https://band.wb.ru/ads/pl/tgokpybpc7fu58qy99rahnippy'
 }
 
 # Часовой пояс (MSK - Московское время)
@@ -79,13 +83,15 @@ class EmployeeProfile(db.Model):
     name = db.Column(db.String(100), nullable=True)
     telegram = db.Column(db.String(100), nullable=True)
     band = db.Column(db.String(100), nullable=True)
+    band_url = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):
         return {
             'id': self.id,
             'name': self.name,
             'telegram': self.telegram,
-            'band': self.band
+            'band': self.band,
+            'band_url': self.band_url
         }
 
 def get_employees():
@@ -99,7 +105,8 @@ def get_employees():
                 'id': emp['id'],
                 'name': profile.name or emp['name'],
                 'telegram': profile.telegram or emp['telegram'],
-                'band': profile.band or emp['band']
+                'band': profile.band or emp['band'],
+                'band_url': profile.band_url or emp.get('band_url')
             })
         else:
             employees.append(emp.copy())
@@ -492,6 +499,7 @@ def update_employee(employee_id):
     profile.name = data.get('name', profile.name)
     profile.telegram = data.get('telegram', profile.telegram)
     profile.band = data.get('band', profile.band)
+    profile.band_url = data.get('band_url', profile.band_url)
 
     db.session.commit()
     return jsonify(profile.to_dict())
