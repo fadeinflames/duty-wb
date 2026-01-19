@@ -21,38 +21,23 @@ EMPLOYEE_DEFAULTS = [
     {
         'id': 'pavel',
         'name': 'Павел Аминов',
-<<<<<<< HEAD
-        'telegram': '@nytera', 
+        'telegram': '@nytera',
         'band': '@aminov.pavel3',
         'band_url': 'https://band.wb.ru/ads/pl/1w6afzks6bba3kiwpjxz4be5ua'
-=======
-        'telegram': '@nytera',  # Замените на реальный Telegram
-        'band': 'https://band.wb.ru/ads/pl/1w6afzks6bba3kiwpjxz4be5ua'
->>>>>>> 786a7644a86a9f57ffc66228467a68cbb6d76128
     },
     {
         'id': 'sergey',
         'name': 'Сергей Петухов',
-<<<<<<< HEAD
-        'telegram': '@Fornization', 
+        'telegram': '@Fornization',
         'band': '@petuhov.sergey15',
         'band_url': 'https://band.wb.ru/ads/pl/ju6ocs9m4fru7xobhe4au7ytde'
-=======
-        'telegram': '@Fornization',  # Замените на реальный Telegram
-        'band': 'https://band.wb.ru/ads/pl/ju6ocs9m4fru7xobhe4au7ytde'
->>>>>>> 786a7644a86a9f57ffc66228467a68cbb6d76128
     },
     {
         'id': 'maxim',
         'name': 'Максим Огурцов',
-<<<<<<< HEAD
-        'telegram': '@miogurtsov', 
+        'telegram': '@miogurtsov',
         'band': '@ogurcov.maksim5',
         'band_url': 'https://band.wb.ru/ads/pl/dh55z54kxbrxzqg6qn8zr7u6wh'
-=======
-        'telegram': '@username',  # Замените на реальный Telegram
-        'band': 'https://band.wb.ru/ads/pl/dh55z54kxbrxzqg6qn8zr7u6wh'
->>>>>>> 786a7644a86a9f57ffc66228467a68cbb6d76128
     }
 ]
 
