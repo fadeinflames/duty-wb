@@ -22,19 +22,19 @@ EMPLOYEE_DEFAULTS = [
         'id': 'pavel',
         'name': 'Павел Аминов',
         'telegram': '@nytera',  # Замените на реальный Telegram
-        'band': '@aminov.pavel3'  # Замените на реальный Band
+        'band': 'https://band.wb.ru/ads/pl/1w6afzks6bba3kiwpjxz4be5ua'
     },
     {
         'id': 'sergey',
         'name': 'Сергей Петухов',
         'telegram': '@Fornization',  # Замените на реальный Telegram
-        'band': '@petuhov.sergey15'  # Замените на реальный Band
+        'band': 'https://band.wb.ru/ads/pl/ju6ocs9m4fru7xobhe4au7ytde'
     },
     {
         'id': 'maxim',
         'name': 'Максим Огурцов',
         'telegram': '@username',  # Замените на реальный Telegram
-        'band': '@ogurcov.maksim5cal'  # Замените на реальный Band
+        'band': 'https://band.wb.ru/ads/pl/dh55z54kxbrxzqg6qn8zr7u6wh'
     }
 ]
 
