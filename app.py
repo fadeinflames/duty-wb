@@ -23,21 +23,21 @@ EMPLOYEE_DEFAULTS = [
         'name': 'Павел Аминов',
         'telegram': '@nytera',
         'band': '@aminov.pavel3',
-        'band_url': 'https://band.wb.ru/ads/pl/1w6afzks6bba3kiwpjxz4be5ua'
+        'band_url': 'https://band.wb.ru/wb/messages/@aminov.pavel3'
     },
     {
         'id': 'sergey',
         'name': 'Сергей Петухов',
         'telegram': '@Fornization',
         'band': '@petuhov.sergey15',
-        'band_url': 'https://band.wb.ru/ads/pl/ju6ocs9m4fru7xobhe4au7ytde'
+        'band_url': 'https://band.wb.ru/wb/messages/@petuhov.sergey15'
     },
     {
         'id': 'maxim',
         'name': 'Максим Огурцов',
         'telegram': '@miogurtsov',
         'band': '@ogurcov.maksim5',
-        'band_url': 'https://band.wb.ru/ads/pl/dh55z54kxbrxzqg6qn8zr7u6wh'
+        'band_url': 'https://band.wb.ru/wb/messages/@ogurcov.maksim5'
     }
 ]
 
@@ -46,7 +46,7 @@ EMERGENCY_CONTACT = {
     'name': 'Максим Гусев',
     'telegram': '@fadeinflames', 
     'band': '@gusev.maksim79',
-    'band_url': 'https://band.wb.ru/ads/pl/tgokpybpc7fu58qy99rahnippy'
+    'band_url': 'https://band.wb.ru/wb/messages/@gusev.maksim79'
 }
 
 # Часовой пояс (MSK - Московское время)
