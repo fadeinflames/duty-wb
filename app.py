@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 import calendar as cal_module
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import and_
+from sqlalchemy import and_, text
 import os
 from functools import wraps
 
@@ -649,6 +649,16 @@ def api_current():
 # Инициализация БД
 with app.app_context():
     db.create_all()
+    # Легкая миграция для добавления новых колонок без Alembic
+    try:
+        result = db.session.execute(text("PRAGMA table_info(employee_profile)")).fetchall()
+        columns = {row[1] for row in result}  # row[1] = name
+        if 'band_url' not in columns:
+            db.session.execute(text("ALTER TABLE employee_profile ADD COLUMN band_url VARCHAR(255)"))
+            db.session.commit()
+    except Exception:
+        # Если таблицы еще нет, create_all создаст её с нужными полями
+        pass
 
 
 if __name__ == '__main__':
